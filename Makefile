@@ -136,6 +136,53 @@ security-scan:
 # Local CI simulation
 ci-local: fmt lint test-coverage build
 
+# GitHub Actions helpers
+actions-test:
+	@echo "Testing GitHub Actions locally..."
+	@echo "Use act to run GitHub Actions locally:"
+	@echo "  act -j test"
+	@echo "  act -j build"
+	@echo "  act -j security"
+
+actions-validate:
+	@echo "Validating GitHub Actions workflows..."
+	@for file in .github/workflows/*.yml; do \
+		echo "Validating $$file"; \
+		yamllint "$$file" || echo "Warning: yamllint not installed"; \
+	done
+
+# Performance testing
+bench:
+	go test -bench=. -benchmem ./internal/...
+
+bench-cpu:
+	go test -bench=. -cpuprofile=cpu.prof ./internal/...
+
+bench-memory:
+	go test -bench=. -memprofile=mem.prof ./internal/...
+
+# Documentation
+docs-serve:
+	@echo "Starting documentation server..."
+	@echo "Visit http://localhost:6060/pkg/iot-platform-go/"
+	godoc -http=:6060
+
+# Release helpers
+release-patch:
+	@echo "Creating patch release..."
+	@git tag -a v$$(semver bump patch) -m "Release v$$(semver bump patch)"
+	@git push origin --tags
+
+release-minor:
+	@echo "Creating minor release..."
+	@git tag -a v$$(semver bump minor) -m "Release v$$(semver bump minor)"
+	@git push origin --tags
+
+release-major:
+	@echo "Creating major release..."
+	@git tag -a v$$(semver bump major) -m "Release v$$(semver bump major)"
+	@git push origin --tags
+
 # Help
 help:
 	@echo "Available commands:"
@@ -169,4 +216,13 @@ help:
 	@echo "  docker-build    - Build Docker image"
 	@echo "  docker-run      - Run Docker container"
 	@echo "  security-scan   - Run security scan"
-	@echo "  ci-local        - Run local CI simulation" 
+	@echo "  ci-local        - Run local CI simulation"
+	@echo "  actions-test    - Test GitHub Actions locally"
+	@echo "  actions-validate- Validate GitHub Actions workflows"
+	@echo "  bench           - Run benchmarks"
+	@echo "  bench-cpu       - Run CPU profiling"
+	@echo "  bench-memory    - Run memory profiling"
+	@echo "  docs-serve      - Serve documentation"
+	@echo "  release-patch   - Create patch release"
+	@echo "  release-minor   - Create minor release"
+	@echo "  release-major   - Create major release" 

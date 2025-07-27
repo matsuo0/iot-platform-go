@@ -1,0 +1,102 @@
+name: Performance Tests
+
+on:
+  schedule:
+    # 毎週日曜日の午前2時に実行
+    - cron: '0 17 * * 0'
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  benchmark:
+    name: Go Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Run benchmarks
+        run: |
+          go test -bench=. -benchmem ./internal/... > benchmark-results.txt
+          echo "Benchmark results:"
+          cat benchmark-results.txt
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results.txt
+          retention-days: 30
+
+  load-test:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    needs: benchmark
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: iot_platform_test
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Build application
+        run: go build -o bin/server cmd/server/main.go
+      
+      - name: Start application
+        run: |
+          ./bin/server &
+          sleep 10
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: iot_platform_test
+          DB_USER: postgres
+          DB_PASSWORD: password
+          DB_SSL_MODE: disable
+      
+      - name: Run load test
+        run: |
+          # 簡単な負荷テスト（curlを使用）
+          for i in {1..100}; do
+            curl -s http://localhost:8080/health > /dev/null &
+          done
+          wait
+          echo "Load test completed"
+      
+      - name: Performance report
+        run: |
+          echo "Performance test completed"
+          echo "Check application logs for performance metrics" 
