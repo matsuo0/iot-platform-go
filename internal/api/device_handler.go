@@ -9,7 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// DeviceHandler handles device-related HTTP requests
+const (
+	// Error messages
+	ErrDeviceNotFound = "device not found"
+)
+
+// DeviceHandler handles device-related HTTP requests.
 type DeviceHandler struct {
 	repo device.RepositoryInterface
 }
@@ -36,7 +41,7 @@ func (h *DeviceHandler) CreateDevice(c *gin.Context) {
 	c.JSON(http.StatusCreated, device)
 }
 
-// GetDevice handles GET /api/devices/:id
+// GetDevice handles GET /api/devices/:id.
 func (h *DeviceHandler) GetDevice(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -46,11 +51,11 @@ func (h *DeviceHandler) GetDevice(c *gin.Context) {
 
 	device, err := h.repo.GetByID(id)
 	if err != nil {
-		if err.Error() == "device not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+		if err.Error() == ErrDeviceNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": ErrDeviceNotFound})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get device: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get device"})
 		return
 	}
 
@@ -71,7 +76,7 @@ func (h *DeviceHandler) GetAllDevices(c *gin.Context) {
 	})
 }
 
-// UpdateDevice handles PUT /api/devices/:id
+// UpdateDevice handles PUT /api/devices/:id.
 func (h *DeviceHandler) UpdateDevice(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -87,8 +92,8 @@ func (h *DeviceHandler) UpdateDevice(c *gin.Context) {
 
 	device, err := h.repo.Update(id, &req)
 	if err != nil {
-		if err.Error() == "device not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+		if err.Error() == ErrDeviceNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": ErrDeviceNotFound})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update device: " + err.Error()})
@@ -98,7 +103,7 @@ func (h *DeviceHandler) UpdateDevice(c *gin.Context) {
 	c.JSON(http.StatusOK, device)
 }
 
-// DeleteDevice handles DELETE /api/devices/:id
+// DeleteDevice handles DELETE /api/devices/:id.
 func (h *DeviceHandler) DeleteDevice(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -108,8 +113,8 @@ func (h *DeviceHandler) DeleteDevice(c *gin.Context) {
 
 	err := h.repo.Delete(id)
 	if err != nil {
-		if err.Error() == "device not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+		if err.Error() == ErrDeviceNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": ErrDeviceNotFound})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete device: " + err.Error()})
@@ -119,7 +124,7 @@ func (h *DeviceHandler) DeleteDevice(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Device deleted successfully"})
 }
 
-// GetDeviceStatus handles GET /api/devices/:id/status
+// GetDeviceStatus handles GET /api/devices/:id/status.
 func (h *DeviceHandler) GetDeviceStatus(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -129,8 +134,8 @@ func (h *DeviceHandler) GetDeviceStatus(c *gin.Context) {
 
 	device, err := h.repo.GetByID(id)
 	if err != nil {
-		if err.Error() == "device not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+		if err.Error() == ErrDeviceNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": ErrDeviceNotFound})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get device status: " + err.Error()})
@@ -144,4 +149,4 @@ func (h *DeviceHandler) GetDeviceStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, status)
-} 
+}

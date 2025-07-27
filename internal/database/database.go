@@ -10,14 +10,15 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Database represents the database connection
+// Database represents the database connection.
 type Database struct {
 	*sql.DB
 }
 
-// New creates a new database connection
+// New creates a new database connection.
 func New(cfg *config.Config) (*Database, error) {
-	db, err := sql.Open("postgres", cfg.GetDatabaseURL())
+	dsn := cfg.GetDatabaseURL()
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -27,68 +28,77 @@ func New(cfg *config.Config) (*Database, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	database := &Database{db}
-	
+	database := &Database{DB: db}
+
 	// Initialize tables
 	if err := database.initTables(); err != nil {
 		return nil, fmt.Errorf("failed to initialize tables: %w", err)
 	}
 
-	log.Println("Database connection established successfully")
 	return database, nil
 }
 
-// initTables creates the necessary tables if they don't exist
-func (db *Database) initTables() error {
+// initTables creates the necessary tables if they don't exist.
+func (d *Database) initTables() error {
 	// Create devices table
 	createDevicesTable := `
-	CREATE TABLE IF NOT EXISTS devices (
-		id VARCHAR(255) PRIMARY KEY,
-		name VARCHAR(255) NOT NULL,
-		type VARCHAR(100) NOT NULL,
-		location VARCHAR(255) NOT NULL,
-		status VARCHAR(50) DEFAULT 'offline',
-		last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		metadata TEXT
-	);`
-
-	// Create device_data table
-	createDeviceDataTable := `
-	CREATE TABLE IF NOT EXISTS device_data (
-		id VARCHAR(255) PRIMARY KEY,
-		device_id VARCHAR(255) NOT NULL,
-		timestamp TIMESTAMP NOT NULL,
-		data JSONB NOT NULL,
-		FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
-	);`
-
-	// Create indexes
-	createIndexes := `
-	CREATE INDEX IF NOT EXISTS idx_device_data_device_id ON device_data(device_id);
-	CREATE INDEX IF NOT EXISTS idx_device_data_timestamp ON device_data(timestamp);
-	CREATE INDEX IF NOT EXISTS idx_devices_status ON devices(status);
-	CREATE INDEX IF NOT EXISTS idx_devices_type ON devices(type);
+		CREATE TABLE IF NOT EXISTS devices (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			name VARCHAR(255) NOT NULL,
+			type VARCHAR(100) NOT NULL,
+			location VARCHAR(255),
+			status VARCHAR(50) DEFAULT 'offline',
+			metadata TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			last_seen TIMESTAMP
+		)
 	`
 
-	if _, err := db.Exec(createDevicesTable); err != nil {
+	_, err := d.Exec(createDevicesTable)
+	if err != nil {
 		return fmt.Errorf("failed to create devices table: %w", err)
 	}
 
-	if _, err := db.Exec(createDeviceDataTable); err != nil {
+	// Create device_data table
+	createDeviceDataTable := `
+		CREATE TABLE IF NOT EXISTS device_data (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+			timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			data_type VARCHAR(100) NOT NULL,
+			value REAL NOT NULL,
+			unit VARCHAR(50),
+			metadata TEXT
+		)
+	`
+
+	_, err = d.Exec(createDeviceDataTable)
+	if err != nil {
 		return fmt.Errorf("failed to create device_data table: %w", err)
 	}
 
-	if _, err := db.Exec(createIndexes); err != nil {
-		return fmt.Errorf("failed to create indexes: %w", err)
+	// Create indexes
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_devices_status ON devices(status)",
+		"CREATE INDEX IF NOT EXISTS idx_devices_type ON devices(type)",
+		"CREATE INDEX IF NOT EXISTS idx_device_data_device_id ON device_data(device_id)",
+		"CREATE INDEX IF NOT EXISTS idx_device_data_timestamp ON device_data(timestamp)",
+		"CREATE INDEX IF NOT EXISTS idx_device_data_type ON device_data(data_type)",
+	}
+
+	for _, index := range indexes {
+		_, err := d.Exec(index)
+		if err != nil {
+			return fmt.Errorf("failed to create index: %w", err)
+		}
 	}
 
 	log.Println("Database tables initialized successfully")
 	return nil
 }
 
-// Close closes the database connection
-func (db *Database) Close() error {
-	return db.DB.Close()
-} 
+// Close closes the database connection.
+func (d *Database) Close() error {
+	return d.DB.Close()
+}

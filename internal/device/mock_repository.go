@@ -8,12 +8,12 @@ import (
 
 // MockRepository is a mock implementation of the device repository for testing
 type MockRepository struct {
-	devices     map[string]*models.Device
-	createFunc  func(req *models.CreateDeviceRequest) (*models.Device, error)
-	getByIDFunc func(id string) (*models.Device, error)
-	getAllFunc  func() ([]*models.Device, error)
-	updateFunc  func(id string, req *models.UpdateDeviceRequest) (*models.Device, error)
-	deleteFunc  func(id string) error
+	devices          map[string]*models.Device
+	createFunc       func(req *models.CreateDeviceRequest) (*models.Device, error)
+	getByIDFunc      func(id string) (*models.Device, error)
+	getAllFunc       func() ([]*models.Device, error)
+	updateFunc       func(id string, req *models.UpdateDeviceRequest) (*models.Device, error)
+	deleteFunc       func(id string) error
 	updateStatusFunc func(id string, status string) error
 }
 
@@ -175,4 +175,4 @@ func (m *MockRepository) AddDevice(device *models.Device) {
 // Clear clears all devices from the mock repository
 func (m *MockRepository) Clear() {
 	m.devices = make(map[string]*models.Device)
-} 
+}

@@ -186,7 +186,7 @@ func TestRepository_GetAll(t *testing.T) {
 
 		// デバイスが作成日時の降順で取得されることを確認
 		for i := 0; i < len(retrievedDevices)-1; i++ {
-			assert.True(t, retrievedDevices[i].CreatedAt.After(retrievedDevices[i+1].CreatedAt) || 
+			assert.True(t, retrievedDevices[i].CreatedAt.After(retrievedDevices[i+1].CreatedAt) ||
 				retrievedDevices[i].CreatedAt.Equal(retrievedDevices[i+1].CreatedAt))
 		}
 	})
@@ -262,7 +262,7 @@ func TestRepository_Update(t *testing.T) {
 			}
 
 			// UpdatedAtが更新されていることを確認
-			assert.True(t, updatedDevice.UpdatedAt.After(createdDevice.UpdatedAt) || 
+			assert.True(t, updatedDevice.UpdatedAt.After(createdDevice.UpdatedAt) ||
 				updatedDevice.UpdatedAt.Equal(createdDevice.UpdatedAt))
 		})
 	}
@@ -459,4 +459,4 @@ func TestRepository_DataValidation(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, createReq.Name, device.Name)
 	})
-} 
+}

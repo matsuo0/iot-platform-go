@@ -103,10 +103,14 @@ func main() <span class="cov0" title="0">{
         if err != nil </span><span class="cov0" title="0">{
                 log.Fatalf("Failed to initialize database: %v", err)
         }</span>
-        <span class="cov0" title="0">defer db.Close()
+        <span class="cov0" title="0">defer func() </span><span class="cov0" title="0">{
+                if err := db.Close(); err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Error closing database: %v", err)
+                }</span>
+        }()
 
         // Initialize repositories
-        deviceRepo := device.NewRepository(db)
+        <span class="cov0" title="0">deviceRepo := device.NewRepository(db)
 
         // Initialize handlers
         deviceHandler := api.NewDeviceHandler(deviceRepo)
@@ -149,7 +153,8 @@ func main() <span class="cov0" title="0">{
         log.Printf("API documentation: http://%s/api", addr)
 
         if err := router.Run(addr); err != nil </span><span class="cov0" title="0">{
-                log.Fatalf("Failed to start server: %v", err)
+                log.Printf("Failed to start server: %v", err)
+                return
         }</span>
 }
 
@@ -167,7 +172,8 @@ func corsMiddleware() gin.HandlerFunc <span class="cov0" title="0">{
 
                 <span class="cov0" title="0">c.Next()</span>
         }
-} </pre>
+}
+</pre>
 		
 		<pre class="file" id="file1" style="display: none">package api
 
@@ -180,7 +186,12 @@ import (
         "github.com/gin-gonic/gin"
 )
 
-// DeviceHandler handles device-related HTTP requests
+const (
+        // Error messages
+        ErrDeviceNotFound = "device not found"
+)
+
+// DeviceHandler handles device-related HTTP requests.
 type DeviceHandler struct {
         repo device.RepositoryInterface
 }
@@ -207,7 +218,7 @@ func (h *DeviceHandler) CreateDevice(c *gin.Context) <span class="cov8" title="1
         <span class="cov8" title="1">c.JSON(http.StatusCreated, device)</span>
 }
 
-// GetDevice handles GET /api/devices/:id
+// GetDevice handles GET /api/devices/:id.
 func (h *DeviceHandler) GetDevice(c *gin.Context) <span class="cov8" title="1">{
         id := c.Param("id")
         if id == "" </span><span class="cov0" title="0">{
@@ -217,11 +228,11 @@ func (h *DeviceHandler) GetDevice(c *gin.Context) <span class="cov8" title="1">{
 
         <span class="cov8" title="1">device, err := h.repo.GetByID(id)
         if err != nil </span><span class="cov8" title="1">{
-                if err.Error() == "device not found" </span><span class="cov0" title="0">{
-                        c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+                if err.Error() == ErrDeviceNotFound </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusNotFound, gin.H{"error": ErrDeviceNotFound})
                         return
                 }</span>
-                <span class="cov8" title="1">c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get device: " + err.Error()})
+                <span class="cov8" title="1">c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get device"})
                 return</span>
         }
 
@@ -242,7 +253,7 @@ func (h *DeviceHandler) GetAllDevices(c *gin.Context) <span class="cov8" title="
         })</span>
 }
 
-// UpdateDevice handles PUT /api/devices/:id
+// UpdateDevice handles PUT /api/devices/:id.
 func (h *DeviceHandler) UpdateDevice(c *gin.Context) <span class="cov8" title="1">{
         id := c.Param("id")
         if id == "" </span><span class="cov0" title="0">{
@@ -258,8 +269,8 @@ func (h *DeviceHandler) UpdateDevice(c *gin.Context) <span class="cov8" title="1
 
         <span class="cov8" title="1">device, err := h.repo.Update(id, &amp;req)
         if err != nil </span><span class="cov8" title="1">{
-                if err.Error() == "device not found" </span><span class="cov0" title="0">{
-                        c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+                if err.Error() == ErrDeviceNotFound </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusNotFound, gin.H{"error": ErrDeviceNotFound})
                         return
                 }</span>
                 <span class="cov8" title="1">c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update device: " + err.Error()})
@@ -269,7 +280,7 @@ func (h *DeviceHandler) UpdateDevice(c *gin.Context) <span class="cov8" title="1
         <span class="cov8" title="1">c.JSON(http.StatusOK, device)</span>
 }
 
-// DeleteDevice handles DELETE /api/devices/:id
+// DeleteDevice handles DELETE /api/devices/:id.
 func (h *DeviceHandler) DeleteDevice(c *gin.Context) <span class="cov8" title="1">{
         id := c.Param("id")
         if id == "" </span><span class="cov0" title="0">{
@@ -279,8 +290,8 @@ func (h *DeviceHandler) DeleteDevice(c *gin.Context) <span class="cov8" title="1
 
         <span class="cov8" title="1">err := h.repo.Delete(id)
         if err != nil </span><span class="cov8" title="1">{
-                if err.Error() == "device not found" </span><span class="cov0" title="0">{
-                        c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+                if err.Error() == ErrDeviceNotFound </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusNotFound, gin.H{"error": ErrDeviceNotFound})
                         return
                 }</span>
                 <span class="cov8" title="1">c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete device: " + err.Error()})
@@ -290,7 +301,7 @@ func (h *DeviceHandler) DeleteDevice(c *gin.Context) <span class="cov8" title="1
         <span class="cov8" title="1">c.JSON(http.StatusOK, gin.H{"message": "Device deleted successfully"})</span>
 }
 
-// GetDeviceStatus handles GET /api/devices/:id/status
+// GetDeviceStatus handles GET /api/devices/:id/status.
 func (h *DeviceHandler) GetDeviceStatus(c *gin.Context) <span class="cov8" title="1">{
         id := c.Param("id")
         if id == "" </span><span class="cov8" title="1">{
@@ -300,8 +311,8 @@ func (h *DeviceHandler) GetDeviceStatus(c *gin.Context) <span class="cov8" title
 
         <span class="cov8" title="1">device, err := h.repo.GetByID(id)
         if err != nil </span><span class="cov8" title="1">{
-                if err.Error() == "device not found" </span><span class="cov0" title="0">{
-                        c.JSON(http.StatusNotFound, gin.H{"error": "Device not found"})
+                if err.Error() == ErrDeviceNotFound </span><span class="cov0" title="0">{
+                        c.JSON(http.StatusNotFound, gin.H{"error": ErrDeviceNotFound})
                         return
                 }</span>
                 <span class="cov8" title="1">c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get device status: " + err.Error()})
@@ -315,7 +326,8 @@ func (h *DeviceHandler) GetDeviceStatus(c *gin.Context) <span class="cov8" title
         }
 
         c.JSON(http.StatusOK, status)</span>
-} </pre>
+}
+</pre>
 		
 		<pre class="file" id="file2" style="display: none">package config
 
@@ -353,10 +365,10 @@ type DatabaseConfig struct {
 
 // MQTTConfig holds MQTT configuration
 type MQTTConfig struct {
-        Broker    string
-        ClientID  string
-        Username  string
-        Password  string
+        Broker   string
+        ClientID string
+        Username string
+        Password string
 }
 
 // JWTConfig holds JWT configuration
@@ -391,10 +403,10 @@ func Load() *Config <span class="cov8" title="1">{
                         SSLMode:  getEnv("DB_SSL_MODE", "disable"),
                 },
                 MQTT: MQTTConfig{
-                        Broker:    getEnv("MQTT_BROKER", "tcp://localhost:1883"),
-                        ClientID:  getEnv("MQTT_CLIENT_ID", "iot-platform-server"),
-                        Username:  getEnv("MQTT_USERNAME", ""),
-                        Password:  getEnv("MQTT_PASSWORD", ""),
+                        Broker:   getEnv("MQTT_BROKER", "tcp://localhost:1883"),
+                        ClientID: getEnv("MQTT_CLIENT_ID", "iot-platform-server"),
+                        Username: getEnv("MQTT_USERNAME", ""),
+                        Password: getEnv("MQTT_PASSWORD", ""),
                 },
                 JWT: JWTConfig{
                         Secret:     getEnv("JWT_SECRET", "your-secret-key-here"),
@@ -416,10 +428,11 @@ func getEnv(key, defaultValue string) string <span class="cov8" title="1">{
 
 // GetDatabaseURL returns the database connection string
 func (c *Config) GetDatabaseURL() string <span class="cov8" title="1">{
-        return "postgres://" + c.Database.User + ":" + c.Database.Password + "@" + 
-                   c.Database.Host + ":" + c.Database.Port + "/" + c.Database.Name + 
-                   "?sslmode=" + c.Database.SSLMode
-}</span> </pre>
+        return "postgres://" + c.Database.User + ":" + c.Database.Password + "@" +
+                c.Database.Host + ":" + c.Database.Port + "/" + c.Database.Name +
+                "?sslmode=" + c.Database.SSLMode
+}</span>
+</pre>
 		
 		<pre class="file" id="file3" style="display: none">package database
 
@@ -433,14 +446,15 @@ import (
         _ "github.com/lib/pq"
 )
 
-// Database represents the database connection
+// Database represents the database connection.
 type Database struct {
         *sql.DB
 }
 
-// New creates a new database connection
+// New creates a new database connection.
 func New(cfg *config.Config) (*Database, error) <span class="cov0" title="0">{
-        db, err := sql.Open("postgres", cfg.GetDatabaseURL())
+        dsn := cfg.GetDatabaseURL()
+        db, err := sql.Open("postgres", dsn)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to open database: %w", err)
         }</span>
@@ -450,71 +464,81 @@ func New(cfg *config.Config) (*Database, error) <span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to ping database: %w", err)
         }</span>
 
-        <span class="cov0" title="0">database := &amp;Database{db}
-        
+        <span class="cov0" title="0">database := &amp;Database{DB: db}
+
         // Initialize tables
         if err := database.initTables(); err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to initialize tables: %w", err)
         }</span>
 
-        <span class="cov0" title="0">log.Println("Database connection established successfully")
-        return database, nil</span>
+        <span class="cov0" title="0">return database, nil</span>
 }
 
-// initTables creates the necessary tables if they don't exist
-func (db *Database) initTables() error <span class="cov0" title="0">{
+// initTables creates the necessary tables if they don't exist.
+func (d *Database) initTables() error <span class="cov0" title="0">{
         // Create devices table
         createDevicesTable := `
-        CREATE TABLE IF NOT EXISTS devices (
-                id VARCHAR(255) PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                type VARCHAR(100) NOT NULL,
-                location VARCHAR(255) NOT NULL,
-                status VARCHAR(50) DEFAULT 'offline',
-                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                metadata TEXT
-        );`
-
-        // Create device_data table
-        createDeviceDataTable := `
-        CREATE TABLE IF NOT EXISTS device_data (
-                id VARCHAR(255) PRIMARY KEY,
-                device_id VARCHAR(255) NOT NULL,
-                timestamp TIMESTAMP NOT NULL,
-                data JSONB NOT NULL,
-                FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
-        );`
-
-        // Create indexes
-        createIndexes := `
-        CREATE INDEX IF NOT EXISTS idx_device_data_device_id ON device_data(device_id);
-        CREATE INDEX IF NOT EXISTS idx_device_data_timestamp ON device_data(timestamp);
-        CREATE INDEX IF NOT EXISTS idx_devices_status ON devices(status);
-        CREATE INDEX IF NOT EXISTS idx_devices_type ON devices(type);
+                CREATE TABLE IF NOT EXISTS devices (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        name VARCHAR(255) NOT NULL,
+                        type VARCHAR(100) NOT NULL,
+                        location VARCHAR(255),
+                        status VARCHAR(50) DEFAULT 'offline',
+                        metadata TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_seen TIMESTAMP
+                )
         `
 
-        if _, err := db.Exec(createDevicesTable); err != nil </span><span class="cov0" title="0">{
+        _, err := d.Exec(createDevicesTable)
+        if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to create devices table: %w", err)
         }</span>
 
-        <span class="cov0" title="0">if _, err := db.Exec(createDeviceDataTable); err != nil </span><span class="cov0" title="0">{
+        // Create device_data table
+        <span class="cov0" title="0">createDeviceDataTable := `
+                CREATE TABLE IF NOT EXISTS device_data (
+                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        data_type VARCHAR(100) NOT NULL,
+                        value REAL NOT NULL,
+                        unit VARCHAR(50),
+                        metadata TEXT
+                )
+        `
+
+        _, err = d.Exec(createDeviceDataTable)
+        if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to create device_data table: %w", err)
         }</span>
 
-        <span class="cov0" title="0">if _, err := db.Exec(createIndexes); err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("failed to create indexes: %w", err)
-        }</span>
+        // Create indexes
+        <span class="cov0" title="0">indexes := []string{
+                "CREATE INDEX IF NOT EXISTS idx_devices_status ON devices(status)",
+                "CREATE INDEX IF NOT EXISTS idx_devices_type ON devices(type)",
+                "CREATE INDEX IF NOT EXISTS idx_device_data_device_id ON device_data(device_id)",
+                "CREATE INDEX IF NOT EXISTS idx_device_data_timestamp ON device_data(timestamp)",
+                "CREATE INDEX IF NOT EXISTS idx_device_data_type ON device_data(data_type)",
+        }
+
+        for _, index := range indexes </span><span class="cov0" title="0">{
+                _, err := d.Exec(index)
+                if err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to create index: %w", err)
+                }</span>
+        }
 
         <span class="cov0" title="0">log.Println("Database tables initialized successfully")
         return nil</span>
 }
 
-// Close closes the database connection
-func (db *Database) Close() error <span class="cov0" title="0">{
-        return db.DB.Close()
-}</span> </pre>
+// Close closes the database connection.
+func (d *Database) Close() error <span class="cov0" title="0">{
+        return d.DB.Close()
+}</span>
+</pre>
 		
 		<pre class="file" id="file4" style="display: none">package device
 
@@ -526,12 +550,12 @@ import (
 
 // MockRepository is a mock implementation of the device repository for testing
 type MockRepository struct {
-        devices     map[string]*models.Device
-        createFunc  func(req *models.CreateDeviceRequest) (*models.Device, error)
-        getByIDFunc func(id string) (*models.Device, error)
-        getAllFunc  func() ([]*models.Device, error)
-        updateFunc  func(id string, req *models.UpdateDeviceRequest) (*models.Device, error)
-        deleteFunc  func(id string) error
+        devices          map[string]*models.Device
+        createFunc       func(req *models.CreateDeviceRequest) (*models.Device, error)
+        getByIDFunc      func(id string) (*models.Device, error)
+        getAllFunc       func() ([]*models.Device, error)
+        updateFunc       func(id string, req *models.UpdateDeviceRequest) (*models.Device, error)
+        deleteFunc       func(id string) error
         updateStatusFunc func(id string, status string) error
 }
 
@@ -693,7 +717,8 @@ func (m *MockRepository) AddDevice(device *models.Device) <span class="cov0" tit
 // Clear clears all devices from the mock repository
 func (m *MockRepository) Clear() <span class="cov0" title="0">{
         m.devices = make(map[string]*models.Device)
-}</span> </pre>
+}</span>
+</pre>
 		
 		<pre class="file" id="file5" style="display: none">package device
 
@@ -780,13 +805,14 @@ func (r *Repository) GetByID(id string) (*models.Device, error) <span class="cov
 // GetAll retrieves all devices
 func (r *Repository) GetAll() ([]*models.Device, error) <span class="cov0" title="0">{
         query := `
-                SELECT id, name, type, location, status, last_seen, created_at, updated_at, metadata
-                FROM devices ORDER BY created_at DESC
+                SELECT id, name, type, location, status, metadata, created_at, updated_at, last_seen
+                FROM devices
+                ORDER BY created_at DESC
         `
 
         rows, err := r.db.Query(query)
         if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("failed to get devices: %w", err)
+                return nil, fmt.Errorf("failed to query devices: %w", err)
         }</span>
         <span class="cov0" title="0">defer rows.Close()
 
@@ -794,13 +820,25 @@ func (r *Repository) GetAll() ([]*models.Device, error) <span class="cov0" title
         for rows.Next() </span><span class="cov0" title="0">{
                 device := &amp;models.Device{}
                 err := rows.Scan(
-                        &amp;device.ID, &amp;device.Name, &amp;device.Type, &amp;device.Location,
-                        &amp;device.Status, &amp;device.LastSeen, &amp;device.CreatedAt, &amp;device.UpdatedAt, &amp;device.Metadata)
+                        &amp;device.ID,
+                        &amp;device.Name,
+                        &amp;device.Type,
+                        &amp;device.Location,
+                        &amp;device.Status,
+                        &amp;device.Metadata,
+                        &amp;device.CreatedAt,
+                        &amp;device.UpdatedAt,
+                        &amp;device.LastSeen,
+                )
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("failed to scan device: %w", err)
                 }</span>
                 <span class="cov0" title="0">devices = append(devices, device)</span>
         }
+
+        <span class="cov0" title="0">if err = rows.Err(); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("error iterating over rows: %w", err)
+        }</span>
 
         <span class="cov0" title="0">return devices, nil</span>
 }
@@ -880,7 +918,8 @@ func (r *Repository) UpdateStatus(id string, status string) error <span class="c
         }</span>
 
         <span class="cov0" title="0">return nil</span>
-} </pre>
+}
+</pre>
 		
 		</div>
 	</body>

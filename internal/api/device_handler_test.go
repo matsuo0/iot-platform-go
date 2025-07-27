@@ -523,4 +523,4 @@ func TestGetDeviceStatus(t *testing.T) {
 			}
 		})
 	}
-} 
+}

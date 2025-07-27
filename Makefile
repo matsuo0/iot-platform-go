@@ -95,6 +95,32 @@ test-db-setup:
 # Run all checks (format, lint, test)
 check: fmt lint test
 
+# CI/CD commands
+ci-test:
+	go test -v -race -coverprofile=coverage.out ./internal/... ./pkg/...
+	go test -v -race ./tests/...
+	go tool cover -html=coverage.out -o coverage.html
+
+ci-build:
+	go build -v -o bin/server cmd/server/main.go
+
+ci-lint:
+	golangci-lint run --timeout=5m
+
+# Docker commands
+docker-build:
+	docker build -t iot-platform-go .
+
+docker-run:
+	docker run -p 8080:8080 iot-platform-go
+
+# Security scan
+security-scan:
+	trivy fs --format sarif --output trivy-results.sarif .
+
+# Local CI simulation
+ci-local: fmt lint test-coverage build
+
 # Help
 help:
 	@echo "Available commands:"
@@ -117,4 +143,11 @@ help:
 	@echo "  deps            - Install dependencies"
 	@echo "  dev             - Run with hot reload (requires air)"
 	@echo "  test-db-setup   - Setup test database"
-	@echo "  check           - Run all checks (format, lint, test)" 
+	@echo "  check           - Run all checks (format, lint, test)"
+	@echo "  ci-test         - Run CI tests"
+	@echo "  ci-build        - Run CI build"
+	@echo "  ci-lint         - Run CI linting"
+	@echo "  docker-build    - Build Docker image"
+	@echo "  docker-run      - Run Docker container"
+	@echo "  security-scan   - Run security scan"
+	@echo "  ci-local        - Run local CI simulation" 

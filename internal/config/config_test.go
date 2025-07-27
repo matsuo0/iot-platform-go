@@ -11,21 +11,21 @@ func TestLoad(t *testing.T) {
 	// テスト用の環境変数を設定
 	originalEnv := make(map[string]string)
 	envVars := map[string]string{
-		"SERVER_HOST":     "test-host",
-		"SERVER_PORT":     "8080",
-		"DB_HOST":         "test-db-host",
-		"DB_PORT":         "5433",
-		"DB_NAME":         "test_db",
-		"DB_USER":         "test_user",
-		"DB_PASSWORD":     "test_password",
-		"DB_SSL_MODE":     "require",
-		"MQTT_BROKER":     "test-mqtt-broker",
-		"MQTT_CLIENT_ID":  "test-client-id",
-		"MQTT_USERNAME":   "test-mqtt-user",
-		"MQTT_PASSWORD":   "test-mqtt-password",
-		"JWT_SECRET":      "test-jwt-secret",
-		"JWT_EXPIRATION":  "24h",
-		"LOG_LEVEL":       "debug",
+		"SERVER_HOST":    "test-host",
+		"SERVER_PORT":    "8080",
+		"DB_HOST":        "test-db-host",
+		"DB_PORT":        "5433",
+		"DB_NAME":        "test_db",
+		"DB_USER":        "test_user",
+		"DB_PASSWORD":    "test_password",
+		"DB_SSL_MODE":    "require",
+		"MQTT_BROKER":    "test-mqtt-broker",
+		"MQTT_CLIENT_ID": "test-client-id",
+		"MQTT_USERNAME":  "test-mqtt-user",
+		"MQTT_PASSWORD":  "test-mqtt-password",
+		"JWT_SECRET":     "test-jwt-secret",
+		"JWT_EXPIRATION": "24h",
+		"LOG_LEVEL":      "debug",
 	}
 
 	// 元の環境変数を保存
@@ -231,4 +231,4 @@ func TestConfigValidation(t *testing.T) {
 		assert.Contains(t, url, "postgres://test_user:test_password@localhost:5432/test_db")
 		assert.Contains(t, url, "sslmode=disable")
 	})
-} 
+}

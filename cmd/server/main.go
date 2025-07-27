@@ -22,7 +22,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Error closing database: %v", err)
+		}
+	}()
 
 	// Initialize repositories
 	deviceRepo := device.NewRepository(db)
@@ -68,7 +72,8 @@ func main() {
 	log.Printf("API documentation: http://%s/api", addr)
 
 	if err := router.Run(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		log.Printf("Failed to start server: %v", err)
+		return
 	}
 }
 
@@ -86,4 +91,4 @@ func corsMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
-} 
+}

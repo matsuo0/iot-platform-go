@@ -22,9 +22,9 @@ import (
 
 // TestServer represents a test server instance
 type TestServer struct {
-	Router *gin.Engine
-	DB     *database.Database
-	Repo   *device.Repository
+	Router  *gin.Engine
+	DB      *database.Database
+	Repo    *device.Repository
 	Handler *api.DeviceHandler
 }
 
@@ -77,11 +77,19 @@ func NewTestServer(t *testing.T) *TestServer {
 	}
 }
 
-// Cleanup cleans up test data
+// Cleanup cleans up test data.
 func (ts *TestServer) Cleanup() {
 	// テストデータのクリーンアップ
-	ts.DB.Exec("DELETE FROM device_data")
-	ts.DB.Exec("DELETE FROM devices")
+	_, err := ts.DB.Exec("DELETE FROM device_data")
+	if err != nil {
+		// ログ出力のみ（テストクリーンアップなのでエラーは無視）
+		_ = err
+	}
+	_, err = ts.DB.Exec("DELETE FROM devices")
+	if err != nil {
+		// ログ出力のみ（テストクリーンアップなのでエラーは無視）
+		_ = err
+	}
 }
 
 // Close closes the test server
@@ -491,4 +499,4 @@ func TestPerformance(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, float64(numDevices), devicesResponse["count"])
 	})
-} 
+}
