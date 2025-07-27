@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+      
+      - name: Build for multiple platforms
+        run: |
+          # Linux
+          GOOS=linux GOARCH=amd64 go build -o bin/iot-platform-go-linux-amd64 cmd/server/main.go
+          GOOS=linux GOARCH=arm64 go build -o bin/iot-platform-go-linux-arm64 cmd/server/main.go
+          
+          # macOS
+          GOOS=darwin GOARCH=amd64 go build -o bin/iot-platform-go-darwin-amd64 cmd/server/main.go
+          GOOS=darwin GOARCH=arm64 go build -o bin/iot-platform-go-darwin-arm64 cmd/server/main.go
+          
+          # Windows
+          GOOS=windows GOARCH=amd64 go build -o bin/iot-platform-go-windows-amd64.exe cmd/server/main.go
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/iot-platform-go-linux-amd64
+            bin/iot-platform-go-linux-arm64
+            bin/iot-platform-go-darwin-amd64
+            bin/iot-platform-go-darwin-arm64
+            bin/iot-platform-go-windows-amd64.exe
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image (local only)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: iot-platform-go:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-${{ github.ref_name }}
+          path: |
+            Dockerfile
+            .dockerignore
+          retention-days: 30 
