@@ -8,6 +8,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	defaultKeepAlive      = 60
+	defaultConnectTimeout = 30
+)
+
 // Config holds all configuration for the application
 type Config struct {
 	Server   ServerConfig
@@ -35,15 +40,15 @@ type DatabaseConfig struct {
 
 // MQTTConfig holds MQTT configuration
 type MQTTConfig struct {
-	Broker       string
-	ClientID     string
-	Username     string
-	Password     string
-	KeepAlive    int
+	Broker         string
+	ClientID       string
+	Username       string
+	Password       string
+	KeepAlive      int
 	ConnectTimeout int
-	QoS          byte
-	CleanSession bool
-	AutoReconnect bool
+	QoS            byte
+	CleanSession   bool
+	AutoReconnect  bool
 }
 
 // JWTConfig holds JWT configuration
@@ -78,15 +83,15 @@ func Load() *Config {
 			SSLMode:  getEnv("DB_SSL_MODE", "disable"),
 		},
 		MQTT: MQTTConfig{
-			Broker:        getEnv("MQTT_BROKER", "tcp://localhost:1883"),
-			ClientID:      getEnv("MQTT_CLIENT_ID", "iot-platform-server"),
-			Username:      getEnv("MQTT_USERNAME", ""),
-			Password:      getEnv("MQTT_PASSWORD", ""),
-			KeepAlive:     getEnvAsInt("MQTT_KEEP_ALIVE", 60),
-			ConnectTimeout: getEnvAsInt("MQTT_CONNECT_TIMEOUT", 30),
-			QoS:           getEnvAsByte("MQTT_QOS", 1),
-			CleanSession:  getEnvAsBool("MQTT_CLEAN_SESSION", true),
-			AutoReconnect: getEnvAsBool("MQTT_AUTO_RECONNECT", true),
+			Broker:         getEnv("MQTT_BROKER", "tcp://localhost:1883"),
+			ClientID:       getEnv("MQTT_CLIENT_ID", "iot-platform-server"),
+			Username:       getEnv("MQTT_USERNAME", ""),
+			Password:       getEnv("MQTT_PASSWORD", ""),
+			KeepAlive:      getEnvAsInt("MQTT_KEEP_ALIVE", defaultKeepAlive),
+			ConnectTimeout: getEnvAsInt("MQTT_CONNECT_TIMEOUT", defaultConnectTimeout),
+			QoS:            getEnvAsByte("MQTT_QOS", 1),
+			CleanSession:   getEnvAsBool("MQTT_CLEAN_SESSION", true),
+			AutoReconnect:  getEnvAsBool("MQTT_AUTO_RECONNECT", true),
 		},
 		JWT: JWTConfig{
 			Secret:     getEnv("JWT_SECRET", "your-secret-key-here"),

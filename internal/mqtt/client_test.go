@@ -10,13 +10,13 @@ import (
 
 func TestNewClient(t *testing.T) {
 	cfg := &config.MQTTConfig{
-		Broker:        "tcp://localhost:1883",
-		ClientID:      "test-client",
-		KeepAlive:     60,
+		Broker:         "tcp://localhost:1883",
+		ClientID:       "test-client",
+		KeepAlive:      60,
 		ConnectTimeout: 30,
-		QoS:           1,
-		CleanSession:  true,
-		AutoReconnect: true,
+		QoS:            1,
+		CleanSession:   true,
+		AutoReconnect:  true,
 	}
 
 	client := NewClient(cfg)
@@ -36,13 +36,13 @@ func TestNewClient(t *testing.T) {
 func TestClientConnection(t *testing.T) {
 	// Test connection to running MQTT broker
 	cfg := &config.MQTTConfig{
-		Broker:        "tcp://localhost:1883",
-		ClientID:      "test-client-" + time.Now().Format("20060102150405"),
-		KeepAlive:     60,
+		Broker:         "tcp://localhost:1883",
+		ClientID:       "test-client-" + time.Now().Format("20060102150405"),
+		KeepAlive:      60,
 		ConnectTimeout: 30,
-		QoS:           1,
-		CleanSession:  true,
-		AutoReconnect: true,
+		QoS:            1,
+		CleanSession:   true,
+		AutoReconnect:  true,
 	}
 
 	client := NewClient(cfg)
@@ -67,13 +67,13 @@ func TestClientConnection(t *testing.T) {
 
 func TestMessageHandler(t *testing.T) {
 	cfg := &config.MQTTConfig{
-		Broker:        "tcp://localhost:1883",
-		ClientID:      "test-client",
-		KeepAlive:     60,
+		Broker:         "tcp://localhost:1883",
+		ClientID:       "test-client",
+		KeepAlive:      60,
 		ConnectTimeout: 30,
-		QoS:           1,
-		CleanSession:  true,
-		AutoReconnect: true,
+		QoS:            1,
+		CleanSession:   true,
+		AutoReconnect:  true,
 	}
 
 	client := NewClient(cfg)
@@ -101,23 +101,23 @@ func TestMessageHandler(t *testing.T) {
 func TestMessagePublishSubscribe(t *testing.T) {
 	// Create two clients for testing publish/subscribe
 	publisher := NewClient(&config.MQTTConfig{
-		Broker:        "tcp://localhost:1883",
-		ClientID:      "test-publisher-" + time.Now().Format("20060102150405"),
-		KeepAlive:     60,
+		Broker:         "tcp://localhost:1883",
+		ClientID:       "test-publisher-" + time.Now().Format("20060102150405"),
+		KeepAlive:      60,
 		ConnectTimeout: 30,
-		QoS:           1,
-		CleanSession:  true,
-		AutoReconnect: true,
+		QoS:            1,
+		CleanSession:   true,
+		AutoReconnect:  true,
 	})
 
 	subscriber := NewClient(&config.MQTTConfig{
-		Broker:        "tcp://localhost:1883",
-		ClientID:      "test-subscriber-" + time.Now().Format("20060102150405"),
-		KeepAlive:     60,
+		Broker:         "tcp://localhost:1883",
+		ClientID:       "test-subscriber-" + time.Now().Format("20060102150405"),
+		KeepAlive:      60,
 		ConnectTimeout: 30,
-		QoS:           1,
-		CleanSession:  true,
-		AutoReconnect: true,
+		QoS:            1,
+		CleanSession:   true,
+		AutoReconnect:  true,
 	})
 
 	// Connect both clients
@@ -171,15 +171,25 @@ func TestMultipleSubscribers(t *testing.T) {
 	subscribers := make([]*Client, 3)
 	receivedMessages := make([]chan string, 3)
 
+	// Cleanup function to disconnect all subscribers
+	cleanup := func() {
+		for _, subscriber := range subscribers {
+			if subscriber != nil {
+				subscriber.Disconnect()
+			}
+		}
+	}
+	defer cleanup()
+
 	for i := 0; i < 3; i++ {
 		subscribers[i] = NewClient(&config.MQTTConfig{
-			Broker:        "tcp://localhost:1883",
-			ClientID:      fmt.Sprintf("test-subscriber-%d-%s", i, time.Now().Format("20060102150405")),
-			KeepAlive:     60,
+			Broker:         "tcp://localhost:1883",
+			ClientID:       fmt.Sprintf("test-subscriber-%d-%s", i, time.Now().Format("20060102150405")),
+			KeepAlive:      60,
 			ConnectTimeout: 30,
-			QoS:           1,
-			CleanSession:  true,
-			AutoReconnect: true,
+			QoS:            1,
+			CleanSession:   true,
+			AutoReconnect:  true,
 		})
 
 		receivedMessages[i] = make(chan string, 1)
@@ -187,18 +197,17 @@ func TestMultipleSubscribers(t *testing.T) {
 		if err := subscribers[i].Connect(); err != nil {
 			t.Fatalf("Failed to connect subscriber %d: %v", i, err)
 		}
-		defer subscribers[i].Disconnect()
 	}
 
 	// Create publisher
 	publisher := NewClient(&config.MQTTConfig{
-		Broker:        "tcp://localhost:1883",
-		ClientID:      "test-publisher-multi-" + time.Now().Format("20060102150405"),
-		KeepAlive:     60,
+		Broker:         "tcp://localhost:1883",
+		ClientID:       "test-publisher-multi-" + time.Now().Format("20060102150405"),
+		KeepAlive:      60,
 		ConnectTimeout: 30,
-		QoS:           1,
-		CleanSession:  true,
-		AutoReconnect: true,
+		QoS:            1,
+		CleanSession:   true,
+		AutoReconnect:  true,
 	})
 
 	if err := publisher.Connect(); err != nil {
@@ -240,4 +249,4 @@ func TestMultipleSubscribers(t *testing.T) {
 			t.Errorf("Subscriber %d: Timeout waiting for message", i)
 		}
 	}
-} 
+}

@@ -10,6 +10,13 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+const (
+	connectRetryInterval   = 5 * time.Second
+	disconnectTimeout      = 250 // milliseconds
+	connectionWaitTime     = 100 * time.Millisecond
+	connectionWaitAttempts = 10
+)
+
 // Client represents an MQTT client
 type Client struct {
 	client   mqtt.Client
@@ -38,11 +45,11 @@ func (c *Client) Connect() error {
 	opts.SetCleanSession(false) // Changed from c.config.CleanSession to false
 	opts.SetAutoReconnect(c.config.AutoReconnect)
 	opts.SetDefaultPublishHandler(c.defaultMessageHandler)
-	
+
 	// Add connection stability settings
 	opts.SetMaxReconnectInterval(1 * time.Minute)
 	opts.SetConnectRetry(true)
-	opts.SetConnectRetryInterval(5 * time.Second)
+	opts.SetConnectRetryInterval(connectRetryInterval)
 	opts.SetOrderMatters(false)
 	opts.SetResumeSubs(true)
 
@@ -67,7 +74,7 @@ func (c *Client) Connect() error {
 // Disconnect closes the MQTT connection
 func (c *Client) Disconnect() {
 	if c.client != nil && c.client.IsConnected() {
-		c.client.Disconnect(250) // 250ms timeout
+		c.client.Disconnect(disconnectTimeout) // 250ms timeout
 		log.Println("Disconnected from MQTT broker")
 	}
 }
@@ -75,13 +82,13 @@ func (c *Client) Disconnect() {
 // Subscribe subscribes to a topic
 func (c *Client) Subscribe(topic string, handler MessageHandler) error {
 	// Wait for connection to be established
-	for i := 0; i < 10; i++ {
+	for i := 0; i < connectionWaitAttempts; i++ {
 		if c.client.IsConnected() {
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(connectionWaitTime)
 	}
-	
+
 	if !c.client.IsConnected() {
 		return fmt.Errorf("MQTT client is not connected after waiting")
 	}
@@ -145,4 +152,4 @@ func (c *Client) IsConnected() bool {
 // defaultMessageHandler handles messages that don't have a specific handler
 func (c *Client) defaultMessageHandler(client mqtt.Client, msg mqtt.Message) {
 	log.Printf("Received message on topic %s: %s", msg.Topic(), string(msg.Payload()))
-} 
+}
