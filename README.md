@@ -219,6 +219,33 @@ docker-compose up -d
 4. Add tests
 5. Submit a pull request
 
+## Security
+
+### GitHub Actions Security
+
+このプロジェクトでは、セキュリティスキャンと依存関係チェックを自動化しています。
+
+#### 必要な設定
+
+GitHub Actionsでセキュリティチェックを実行するには、以下の設定が必要です：
+
+1. **Dependency Graph の有効化**
+   - リポジトリの `Settings` → `Security & analysis` で有効化
+   - プライベートリポジトリの場合は GitHub Advanced Security も必要
+
+2. **セキュリティワークフロー**
+   - `security.yml`: 包括的なセキュリティスキャン
+   - `dependency-check.yml`: 依存関係の詳細チェック
+
+詳細な設定手順は [docs/SECURITY_SETUP.md](docs/SECURITY_SETUP.md) を参照してください。
+
+#### 実行されるチェック
+
+- **Dependency Review**: 依存関係の変更を自動チェック
+- **Trivy Vulnerability Scanner**: 既知の脆弱性をスキャン
+- **GoSec**: Goコードのセキュリティ問題を検出
+- **govulncheck**: Goの脆弱性データベースをチェック
+
 ## License
 
 This project is licensed under the MIT License.
