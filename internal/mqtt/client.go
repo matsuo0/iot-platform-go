@@ -35,9 +35,16 @@ func (c *Client) Connect() error {
 	opts.SetClientID(c.config.ClientID)
 	opts.SetKeepAlive(time.Duration(c.config.KeepAlive) * time.Second)
 	opts.SetConnectTimeout(time.Duration(c.config.ConnectTimeout) * time.Second)
-	opts.SetCleanSession(c.config.CleanSession)
+	opts.SetCleanSession(false) // Changed from c.config.CleanSession to false
 	opts.SetAutoReconnect(c.config.AutoReconnect)
 	opts.SetDefaultPublishHandler(c.defaultMessageHandler)
+	
+	// Add connection stability settings
+	opts.SetMaxReconnectInterval(1 * time.Minute)
+	opts.SetConnectRetry(true)
+	opts.SetConnectRetryInterval(5 * time.Second)
+	opts.SetOrderMatters(false)
+	opts.SetResumeSubs(true)
 
 	// Set credentials if provided
 	if c.config.Username != "" {
@@ -67,8 +74,16 @@ func (c *Client) Disconnect() {
 
 // Subscribe subscribes to a topic
 func (c *Client) Subscribe(topic string, handler MessageHandler) error {
+	// Wait for connection to be established
+	for i := 0; i < 10; i++ {
+		if c.client.IsConnected() {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	
 	if !c.client.IsConnected() {
-		return fmt.Errorf("MQTT client is not connected")
+		return fmt.Errorf("MQTT client is not connected after waiting")
 	}
 
 	// Store handler
