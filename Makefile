@@ -114,9 +114,24 @@ docker-build:
 docker-run:
 	docker run -p 8080:8080 iot-platform-go
 
+# Dependencies management
+deps-update:
+	go get -u ./...
+	go mod tidy
+
+deps-check:
+	go list -u -m all
+
+deps-audit:
+	govulncheck ./...
+
+deps-clean:
+	go clean -modcache
+
 # Security scan
 security-scan:
 	trivy fs --format sarif --output trivy-results.sarif .
+	govulncheck ./...
 
 # Local CI simulation
 ci-local: fmt lint test-coverage build
@@ -141,6 +156,10 @@ help:
 	@echo "  fmt             - Format code"
 	@echo "  lint            - Lint code"
 	@echo "  deps            - Install dependencies"
+	@echo "  deps-update     - Update all dependencies"
+	@echo "  deps-check      - Check for outdated dependencies"
+	@echo "  deps-audit      - Audit dependencies for vulnerabilities"
+	@echo "  deps-clean      - Clean module cache"
 	@echo "  dev             - Run with hot reload (requires air)"
 	@echo "  test-db-setup   - Setup test database"
 	@echo "  check           - Run all checks (format, lint, test)"
