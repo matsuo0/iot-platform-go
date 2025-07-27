@@ -11,6 +11,16 @@ import (
 	"github.com/google/uuid"
 )
 
+// RepositoryInterface defines the interface for device repository operations
+type RepositoryInterface interface {
+	Create(req *models.CreateDeviceRequest) (*models.Device, error)
+	GetByID(id string) (*models.Device, error)
+	GetAll() ([]*models.Device, error)
+	Update(id string, req *models.UpdateDeviceRequest) (*models.Device, error)
+	Delete(id string) error
+	UpdateStatus(id string, status string) error
+}
+
 // Repository handles database operations for devices
 type Repository struct {
 	db *database.Database

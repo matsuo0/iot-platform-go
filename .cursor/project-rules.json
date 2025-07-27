@@ -1,0 +1,208 @@
+{
+  "project": {
+    "name": "IoT Platform Go",
+    "description": "IoTデバイス管理プラットフォーム - MQTT統合、時系列データ処理、WebSocketダッシュボードを備えたスケーラブルなIoTプラットフォーム",
+    "version": "1.0.0",
+    "language": "Go",
+    "architecture": "Clean Architecture"
+  },
+  "filePatterns": {
+    "include": [
+      "*.go",
+      "*.md",
+      "*.yml",
+      "*.yaml",
+      "*.json",
+      "*.env.example",
+      "Makefile",
+      "go.mod",
+      "go.sum"
+    ],
+    "exclude": [
+      "bin/",
+      "vendor/",
+      "node_modules/",
+      "*.log",
+      "*.tmp",
+      "configs/env",
+      ".env",
+      ".DS_Store",
+      "*.swp",
+      "*.swo"
+    ]
+  },
+  "codingStandards": {
+    "language": "Go",
+    "version": "1.24.5",
+    "conventions": {
+      "naming": {
+        "packages": "lowercase, single word",
+        "functions": "camelCase",
+        "variables": "camelCase",
+        "constants": "UPPER_SNAKE_CASE",
+        "interfaces": "PascalCase with 'er' suffix (e.g., DeviceRepository)",
+        "structs": "PascalCase"
+      },
+      "structure": {
+        "imports": "standard library first, then third-party, then internal",
+        "lineLength": "120 characters max",
+        "indentation": "tabs (not spaces)",
+        "comments": "日本語で記述、関数の前にgodoc形式"
+      },
+      "architecture": {
+        "layers": "Presentation → Application → Domain → Infrastructure",
+        "dependencyDirection": "内側のレイヤーは外側のレイヤーに依存しない",
+        "interfaces": "抽象化のためにインターフェースを使用",
+        "dependencyInjection": "結合度を下げるためにDIを使用"
+      }
+    },
+    "linting": {
+      "tool": "golangci-lint",
+      "rules": [
+        "go vet",
+        "gofmt",
+        "golint",
+        "errcheck",
+        "staticcheck"
+      ]
+    }
+  },
+  "customCommands": {
+    "build": "go build -o bin/server cmd/server/main.go",
+    "run": "go run cmd/server/main.go",
+    "test": "go test ./...",
+    "test-coverage": "go test -cover ./...",
+    "clean": "rm -rf bin/",
+    "fmt": "go fmt ./...",
+    "lint": "golangci-lint run",
+    "deps": "go mod tidy && go mod download",
+    "dev": "air (hot reload)",
+    "docker-up": "docker-compose up -d",
+    "docker-down": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "docs": "swag init -g cmd/server/main.go"
+  },
+  "terminology": {
+    "Device": "IoTデバイス（センサー、アクチュエーター等）",
+    "MQTT": "Message Queuing Telemetry Transport - 軽量メッセージングプロトコル",
+    "Time-series Data": "時系列データ - 時間順に並んだデータポイント",
+    "WebSocket": "リアルタイム双方向通信プロトコル",
+    "Repository Pattern": "データアクセス層を抽象化するデザインパターン",
+    "Clean Architecture": "依存関係が内側に向かうアーキテクチャパターン",
+    "Use Case": "アプリケーションのビジネスロジック",
+    "Handler": "HTTPリクエストを処理する関数",
+    "Middleware": "リクエスト処理の前後に実行される処理",
+    "Broker": "MQTTメッセージの仲介を行うサーバー",
+    "Hub": "WebSocket接続を管理する中央コンポーネント"
+  },
+  "components": {
+    "main": {
+      "cmd/server": "アプリケーションのエントリーポイント",
+      "internal/api": "HTTPハンドラーとミドルウェア",
+      "internal/device": "デバイス関連のビジネスロジック",
+      "internal/config": "設定管理",
+      "internal/database": "データベース接続とセットアップ",
+      "internal/mqtt": "MQTTクライアント（予定）",
+      "internal/websocket": "WebSocketハブ（予定）"
+    },
+    "models": {
+      "pkg/models": "データモデルとエンティティ",
+      "pkg/utils": "共通ユーティリティ関数"
+    },
+    "infrastructure": {
+      "configs": "設定ファイル",
+      "scripts": "ビルド・デプロイスクリプト",
+      "docs": "プロジェクトドキュメント"
+    }
+  },
+  "libraries": {
+    "core": {
+      "gin-gonic/gin": "v1.10.1 - Webフレームワーク",
+      "lib/pq": "v1.10.9 - PostgreSQLドライバー",
+      "google/uuid": "v1.6.0 - UUID生成",
+      "joho/godotenv": "v1.5.1 - 環境変数管理"
+    },
+    "planned": {
+      "eclipse/paho.mqtt.golang": "MQTTクライアント",
+      "influxdata/influxdb-client-go": "InfluxDBクライアント",
+      "gorilla/websocket": "WebSocket実装",
+      "golang-jwt/jwt": "JWT認証"
+    }
+  },
+  "folderStructure": {
+    "cmd/": "アプリケーションエントリーポイント",
+    "internal/": "内部パッケージ（外部からインポート不可）",
+    "pkg/": "外部公開パッケージ",
+    "configs/": "設定ファイル",
+    "docs/": "プロジェクトドキュメント",
+    "scripts/": "ビルド・デプロイスクリプト",
+    "bin/": "ビルド成果物（gitignore）",
+    "vendor/": "依存関係（gitignore）"
+  },
+  "testing": {
+    "strategy": "レイヤー別テスト + 統合テスト",
+    "coverage": "80%以上を目標",
+    "types": {
+      "unit": "個別関数・メソッドのテスト",
+      "integration": "レイヤー間の統合テスト",
+      "e2e": "エンドツーエンドテスト"
+    },
+    "tools": {
+      "testing": "標準testingパッケージ",
+      "mocking": "gomock または testify/mock",
+      "assertions": "testify/assert"
+    },
+    "commands": {
+      "run-all": "go test ./...",
+      "run-with-coverage": "go test -cover ./...",
+      "run-specific": "go test ./internal/device -v"
+    }
+  },
+  "performance": {
+    "targets": {
+      "apiResponse": "< 100ms",
+      "concurrentConnections": "1000+ デバイス",
+      "messageProcessing": "10000+ メッセージ/秒",
+      "availability": "99.9%"
+    },
+    "optimization": {
+      "database": "インデックス最適化、クエリ最適化",
+      "caching": "Redis導入予定",
+      "connectionPooling": "データベース接続プール",
+      "asyncProcessing": "非同期メッセージ処理",
+      "compression": "データ圧縮・集約"
+    },
+    "monitoring": {
+      "metrics": "Prometheus + Grafana",
+      "logging": "構造化ログ（JSON形式）",
+      "tracing": "分散トレーシング（予定）"
+    }
+  },
+  "development": {
+    "environment": {
+      "go": "1.24.5+",
+      "docker": "最新版",
+      "postgresql": "15+",
+      "mqtt": "Mosquitto"
+    },
+    "workflow": {
+      "branching": "feature/機能名",
+      "commits": "conventional commits形式",
+      "review": "プルリクエスト必須",
+      "testing": "コミット前にテスト実行"
+    }
+  },
+  "deployment": {
+    "environments": {
+      "development": "ローカルDocker環境",
+      "staging": "ステージング環境",
+      "production": "本番環境"
+    },
+    "containers": {
+      "application": "Goアプリケーション",
+      "database": "PostgreSQL",
+      "mqtt": "Mosquitto",
+      "monitoring": "Grafana（オプション）"
+    }
+  }
+}

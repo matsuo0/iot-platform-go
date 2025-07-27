@@ -11,11 +11,11 @@ import (
 
 // DeviceHandler handles device-related HTTP requests
 type DeviceHandler struct {
-	repo *device.Repository
+	repo device.RepositoryInterface
 }
 
 // NewDeviceHandler creates a new device handler
-func NewDeviceHandler(repo *device.Repository) *DeviceHandler {
+func NewDeviceHandler(repo device.RepositoryInterface) *DeviceHandler {
 	return &DeviceHandler{repo: repo}
 }
 
