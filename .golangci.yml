@@ -1,0 +1,157 @@
+run:
+  timeout: 5m
+  go: "1.21"
+
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - ineffassign
+    - unused
+    - misspell
+    - gosec
+    - gocyclo
+    - dupl
+    - goconst
+    - gocritic
+    - goheader
+    - mnd
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - noctx
+    - nolintlint
+    - rowserrcheck
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  mnd:
+    checks: argument,case,condition,operation,return,assign
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - httpNoBody
+      - unnecessaryBlock
+      - paramTypeCombine
+      - commentedOutCode
+  goheader:
+    template-path: ""
+    values:
+      const:
+        Author: "IoT Platform Go Team"
+        Year: "2024"
+  gosec:
+    excludes:
+      - G404 # Use of weak random number generator
+      - G601 # Implicit memory aliasing in for loop
+  lll:
+    line-length: 140
+  misspell:
+    locale: US
+  nolintlint:
+    allow-unused: false
+    require-explanation: false
+    require-specific: false
+  rowserrcheck:
+    packages:
+      - database/sql
+  stylecheck:
+    initialisms:
+      - ACL
+      - API
+      - ASCII
+      - CPU
+      - CSS
+      - DNS
+      - EOF
+      - GUID
+      - HTML
+      - HTTP
+      - HTTPS
+      - ID
+      - IP
+      - JSON
+      - QPS
+      - RAM
+      - RPC
+      - SLA
+      - SMTP
+      - SQL
+      - SSH
+      - TCP
+      - TLS
+      - TTL
+      - UDP
+      - UI
+      - GID
+      - UID
+      - UUID
+      - URI
+      - URL
+      - UTF8
+      - VM
+      - XML
+      - XMPP
+      - XSRF
+      - XSS
+  unconvert:
+    fast: true
+  unparam:
+    check-exported: false
+  godot:
+    scope: declarations
+    period: true
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - mnd
+        - gocyclo
+        - dupl
+        - goconst
+    - path: internal/device/mock_repository\.go
+      linters:
+        - mnd
+        - gocyclo
+        - dupl
+        - goconst
+    - path: cmd/server/main\.go
+      linters:
+        - mnd
+        - gocyclo
+        - dupl
+        - goconst
+  max-issues-per-linter: 0
+  max-same-issues: 0 

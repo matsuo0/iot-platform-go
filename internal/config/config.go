@@ -34,10 +34,10 @@ type DatabaseConfig struct {
 
 // MQTTConfig holds MQTT configuration
 type MQTTConfig struct {
-	Broker    string
-	ClientID  string
-	Username  string
-	Password  string
+	Broker   string
+	ClientID string
+	Username string
+	Password string
 }
 
 // JWTConfig holds JWT configuration
@@ -72,10 +72,10 @@ func Load() *Config {
 			SSLMode:  getEnv("DB_SSL_MODE", "disable"),
 		},
 		MQTT: MQTTConfig{
-			Broker:    getEnv("MQTT_BROKER", "tcp://localhost:1883"),
-			ClientID:  getEnv("MQTT_CLIENT_ID", "iot-platform-server"),
-			Username:  getEnv("MQTT_USERNAME", ""),
-			Password:  getEnv("MQTT_PASSWORD", ""),
+			Broker:   getEnv("MQTT_BROKER", "tcp://localhost:1883"),
+			ClientID: getEnv("MQTT_CLIENT_ID", "iot-platform-server"),
+			Username: getEnv("MQTT_USERNAME", ""),
+			Password: getEnv("MQTT_PASSWORD", ""),
 		},
 		JWT: JWTConfig{
 			Secret:     getEnv("JWT_SECRET", "your-secret-key-here"),
@@ -97,7 +97,7 @@ func getEnv(key, defaultValue string) string {
 
 // GetDatabaseURL returns the database connection string
 func (c *Config) GetDatabaseURL() string {
-	return "postgres://" + c.Database.User + ":" + c.Database.Password + "@" + 
-		   c.Database.Host + ":" + c.Database.Port + "/" + c.Database.Name + 
-		   "?sslmode=" + c.Database.SSLMode
-} 
+	return "postgres://" + c.Database.User + ":" + c.Database.Password + "@" +
+		c.Database.Host + ":" + c.Database.Port + "/" + c.Database.Name +
+		"?sslmode=" + c.Database.SSLMode
+}

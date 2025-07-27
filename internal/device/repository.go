@@ -11,6 +11,16 @@ import (
 	"github.com/google/uuid"
 )
 
+// RepositoryInterface defines the interface for device repository operations
+type RepositoryInterface interface {
+	Create(req *models.CreateDeviceRequest) (*models.Device, error)
+	GetByID(id string) (*models.Device, error)
+	GetAll() ([]*models.Device, error)
+	Update(id string, req *models.UpdateDeviceRequest) (*models.Device, error)
+	Delete(id string) error
+	UpdateStatus(id string, status string) error
+}
+
 // Repository handles database operations for devices
 type Repository struct {
 	db *database.Database
@@ -73,13 +83,14 @@ func (r *Repository) GetByID(id string) (*models.Device, error) {
 // GetAll retrieves all devices
 func (r *Repository) GetAll() ([]*models.Device, error) {
 	query := `
-		SELECT id, name, type, location, status, last_seen, created_at, updated_at, metadata
-		FROM devices ORDER BY created_at DESC
+		SELECT id, name, type, location, status, metadata, created_at, updated_at, last_seen
+		FROM devices
+		ORDER BY created_at DESC
 	`
 
 	rows, err := r.db.Query(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get devices: %w", err)
+		return nil, fmt.Errorf("failed to query devices: %w", err)
 	}
 	defer rows.Close()
 
@@ -87,12 +98,24 @@ func (r *Repository) GetAll() ([]*models.Device, error) {
 	for rows.Next() {
 		device := &models.Device{}
 		err := rows.Scan(
-			&device.ID, &device.Name, &device.Type, &device.Location,
-			&device.Status, &device.LastSeen, &device.CreatedAt, &device.UpdatedAt, &device.Metadata)
+			&device.ID,
+			&device.Name,
+			&device.Type,
+			&device.Location,
+			&device.Status,
+			&device.Metadata,
+			&device.CreatedAt,
+			&device.UpdatedAt,
+			&device.LastSeen,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan device: %w", err)
 		}
 		devices = append(devices, device)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over rows: %w", err)
 	}
 
 	return devices, nil
@@ -173,4 +196,4 @@ func (r *Repository) UpdateStatus(id string, status string) error {
 	}
 
 	return nil
-} 
+}
