@@ -1,0 +1,68 @@
+# GitHub Branch Protection Rules
+# このファイルはGitHubのブランチ保護ルールを定義します
+
+# 保護するブランチの設定
+branches:
+  # mainブランチの保護設定
+  - name: main
+    protection:
+      # ブランチの削除を禁止
+      allow_deletions: false
+      # 強制プッシュを禁止
+      allow_force_pushes: false
+      # 直線的な履歴を要求
+      required_linear_history: true
+      # 最新の状態を要求
+      require_up_to_date: true
+      # プルリクエストのレビューを要求
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: true
+      # ステータスチェックを要求
+      required_status_checks:
+        strict: true
+        contexts: []
+      # 署名されたコミットを要求
+      require_signed_commits: true
+      # 管理者も制限に従う
+      enforce_admins: true
+      # 制限の適用
+      restrictions: null
+
+  # stagingブランチの保護設定（ステージング用ブランチ）
+  - name: staging
+    protection:
+      allow_deletions: false
+      allow_force_pushes: false
+      required_linear_history: false
+      require_up_to_date: false
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: false
+      required_status_checks:
+        strict: false
+        contexts: []
+      require_signed_commits: false
+      enforce_admins: false
+      restrictions: null
+
+
+  # developブランチの保護設定（開発用ブランチ）
+  - name: develop
+    protection:
+      allow_deletions: false
+      allow_force_pushes: false
+      required_linear_history: false
+      require_up_to_date: false
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: false
+      required_status_checks:
+        strict: false
+        contexts: []
+      require_signed_commits: false
+      enforce_admins: false
+      restrictions: null

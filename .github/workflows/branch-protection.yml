@@ -1,0 +1,93 @@
+name: Branch Protection
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+    paths:
+      - '.github/branch-protection.yml'
+  workflow_dispatch:
+  schedule:
+    # 毎日午前9時に実行
+    - cron: '0 9 * * *'
+
+jobs:
+  apply-branch-protection:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      administration: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply branch protection rules
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const yaml = require('js-yaml');
+            
+            try {
+              // branch-protection.ymlファイルを読み込み
+              const configFile = fs.readFileSync('.github/branch-protection.yml', 'utf8');
+              const config = yaml.load(configFile);
+              
+              console.log('Branch protection configuration loaded');
+              
+              // 各ブランチに対して保護ルールを適用
+              for (const branch of config.branches) {
+                try {
+                  console.log(`Applying protection rules to branch: ${branch.name}`);
+                  
+                  await github.rest.repos.updateBranchProtection({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    branch: branch.name,
+                    required_status_checks: branch.protection.required_status_checks,
+                    enforce_admins: branch.protection.enforce_admins,
+                    required_pull_request_reviews: branch.protection.required_pull_request_reviews,
+                    restrictions: branch.protection.restrictions,
+                    allow_force_pushes: branch.protection.allow_force_pushes,
+                    allow_deletions: branch.protection.allow_deletions,
+                    required_linear_history: branch.protection.required_linear_history,
+                    require_up_to_date: branch.protection.require_up_to_date,
+                    require_signed_commits: branch.protection.require_signed_commits
+                  });
+                  
+                  console.log(`✅ Protection rules applied to ${branch.name}`);
+                } catch (error) {
+                  console.error(`❌ Failed to apply protection rules to ${branch.name}:`, error.message);
+                }
+              }
+            } catch (error) {
+              console.error('❌ Failed to load branch protection configuration:', error.message);
+              core.setFailed(error.message);
+            }
+
+      - name: Verify branch protection
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const protectedBranches = ['main', 'master', 'develop'];
+            
+            for (const branch of protectedBranches) {
+              try {
+                const protection = await github.rest.repos.getBranchProtection({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  branch: branch
+                });
+                
+                console.log(`✅ ${branch} is protected`);
+                console.log(`   - Allow deletions: ${protection.data.allow_deletions.enabled}`);
+                console.log(`   - Allow force pushes: ${protection.data.allow_force_pushes.enabled}`);
+              } catch (error) {
+                console.log(`⚠️  ${branch} is not protected or doesn't exist`);
+              }
+            } 
