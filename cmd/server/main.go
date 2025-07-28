@@ -23,18 +23,18 @@ import (
 
 // Device data structure for MQTT messages
 type DeviceDataMessage struct {
-	DeviceID   string                 `json:"device_id"`
-	Timestamp  string                 `json:"timestamp"`
-	Data       map[string]interface{} `json:"data"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	DeviceID  string                 `json:"device_id"`
+	Timestamp string                 `json:"timestamp"`
+	Data      map[string]interface{} `json:"data"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Device status structure for MQTT messages
 type DeviceStatusMessage struct {
-	DeviceID  string `json:"device_id"`
-	Status    string `json:"status"`
-	LastSeen  string `json:"last_seen"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	DeviceID string                 `json:"device_id"`
+	Status   string                 `json:"status"`
+	LastSeen string                 `json:"last_seen"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Application holds all dependencies
@@ -136,7 +136,7 @@ func (app *Application) Start() error {
 
 		if app.mqttClient.IsConnected() {
 			log.Printf("✅ MQTT client is ready")
-			
+
 			// Subscribe to MQTT topics
 			if err := app.subscribeToMQTTTopics(); err != nil {
 				log.Printf("⚠️ Failed to subscribe to MQTT topics: %v", err)
@@ -151,8 +151,9 @@ func (app *Application) Start() error {
 	// Setup HTTP server
 	addr := fmt.Sprintf("%s:%s", app.config.Server.Host, app.config.Server.Port)
 	app.server = &http.Server{
-		Addr:    addr,
-		Handler: app.router,
+		Addr:              addr,
+		Handler:           app.router,
+		ReadHeaderTimeout: 30 * time.Second, // Prevent Slowloris attack
 	}
 
 	log.Printf("Starting server on %s", addr)
@@ -166,6 +167,8 @@ func (app *Application) Start() error {
 func (app *Application) Stop(ctx context.Context) error {
 	log.Println("🛑 Shutting down IoT Platform...")
 
+	var shutdownErrors []error
+
 	// Disconnect MQTT client
 	if app.mqttClient != nil && app.mqttClient.IsConnected() {
 		app.mqttClient.Disconnect()
@@ -176,6 +179,7 @@ func (app *Application) Stop(ctx context.Context) error {
 	if app.db != nil {
 		if err := app.db.Close(); err != nil {
 			log.Printf("Error closing database: %v", err)
+			shutdownErrors = append(shutdownErrors, fmt.Errorf("database close error: %w", err))
 		}
 	}
 
@@ -183,10 +187,17 @@ func (app *Application) Stop(ctx context.Context) error {
 	if app.server != nil {
 		if err := app.server.Shutdown(ctx); err != nil {
 			log.Printf("Error shutting down server: %v", err)
+			shutdownErrors = append(shutdownErrors, fmt.Errorf("server shutdown error: %w", err))
 		}
 	}
 
 	log.Println("✅ Server shutdown complete")
+
+	// Return error if any shutdown operations failed
+	if len(shutdownErrors) > 0 {
+		return fmt.Errorf("shutdown errors: %v", shutdownErrors)
+	}
+
 	return nil
 }
 
@@ -374,7 +385,7 @@ func logToFile(message string) {
 		return
 	}
 	defer logFile.Close()
-	
+
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	logEntry := fmt.Sprintf("[%s] %s\n", timestamp, message)
 	if _, err := logFile.WriteString(logEntry); err != nil {
