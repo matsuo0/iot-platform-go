@@ -54,10 +54,10 @@ func main() {
 		log.Printf("Server will start without MQTT functionality")
 	} else {
 		log.Printf("✅ Successfully connected to MQTT broker")
-		
+
 		// Wait for connection to be established
 		time.Sleep(2 * time.Second)
-		
+
 		if mqttClient.IsConnected() {
 			log.Printf("✅ MQTT client is ready")
 		} else {
@@ -79,12 +79,12 @@ func main() {
 		if mqttClient != nil && mqttClient.IsConnected() {
 			mqttStatus = "connected"
 		}
-		
+
 		c.JSON(http.StatusOK, gin.H{
-			"status":     "ok",
-			"message":    "IoT Platform is running",
+			"status":      "ok",
+			"message":     "IoT Platform is running",
 			"mqtt_status": mqttStatus,
-			"timestamp":  time.Now().Format(time.RFC3339),
+			"timestamp":   time.Now().Format(time.RFC3339),
 		})
 	})
 
@@ -123,13 +123,13 @@ func main() {
 	// Wait for shutdown signal
 	<-sigChan
 	log.Println("🛑 Shutting down IoT Platform...")
-	
+
 	// Disconnect MQTT client
 	if mqttClient != nil && mqttClient.IsConnected() {
 		mqttClient.Disconnect()
 		log.Println("✅ MQTT client disconnected")
 	}
-	
+
 	log.Println("✅ Server shutdown complete")
 }
 
