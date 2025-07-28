@@ -3,6 +3,7 @@ package mqtt
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"iot-platform-go/internal/config"
@@ -98,9 +99,23 @@ func (c *Client) Subscribe(topic string, handler MessageHandler) error {
 
 	// Subscribe to topic
 	token := c.client.Subscribe(topic, c.config.QoS, func(client mqtt.Client, msg mqtt.Message) {
+		// Find the appropriate handler for this topic
+		// First try exact match
 		if handler, exists := c.handlers[msg.Topic()]; exists {
 			handler(msg.Topic(), msg.Payload())
+			return
 		}
+		
+		// Then try wildcard matches
+		for pattern, handler := range c.handlers {
+			if c.topicMatches(pattern, msg.Topic()) {
+				handler(msg.Topic(), msg.Payload())
+				return
+			}
+		}
+		
+		// If no handler found, use default handler
+		c.defaultMessageHandler(client, msg)
 	})
 
 	if token.Wait() && token.Error() != nil {
@@ -152,4 +167,46 @@ func (c *Client) IsConnected() bool {
 // defaultMessageHandler handles messages that don't have a specific handler
 func (c *Client) defaultMessageHandler(client mqtt.Client, msg mqtt.Message) {
 	log.Printf("Received message on topic %s: %s", msg.Topic(), string(msg.Payload()))
+}
+
+// topicMatches checks if a topic matches a pattern (supports + and # wildcards)
+func (c *Client) topicMatches(pattern, topic string) bool {
+	// Simple wildcard matching implementation
+	// This is a basic implementation - for production use a more robust MQTT topic matcher
+	
+	// Split both pattern and topic by '/'
+	patternParts := strings.Split(pattern, "/")
+	topicParts := strings.Split(topic, "/")
+	
+	// Handle # wildcard (matches everything after this point)
+	if len(patternParts) > 0 && patternParts[len(patternParts)-1] == "#" {
+		// Remove the # from pattern
+		patternParts = patternParts[:len(patternParts)-1]
+		// Check if topic starts with the pattern (excluding #)
+		if len(topicParts) >= len(patternParts) {
+			for i, part := range patternParts {
+				if i >= len(topicParts) {
+					return false
+				}
+				if part != "+" && part != topicParts[i] {
+					return false
+				}
+			}
+			return true
+		}
+		return false
+	}
+	
+	// Handle + wildcard and exact matching
+	if len(patternParts) != len(topicParts) {
+		return false
+	}
+	
+	for i, patternPart := range patternParts {
+		if patternPart != "+" && patternPart != topicParts[i] {
+			return false
+		}
+	}
+	
+	return true
 }

@@ -131,16 +131,20 @@ func main() {
 		for range ticker.C {
 			messageCount++
 
+			// Test different device IDs to verify wildcard matching
+			deviceIDs := []string{"test-device", "sensor-001", "camera-002", "thermostat-003"}
+			deviceID := deviceIDs[messageCount%len(deviceIDs)]
+
 			// Send device data
 			deviceData := map[string]interface{}{
-				"device_id":   "test-device",
+				"device_id":   deviceID,
 				"temperature": baseTemperature + float64(messageCount),
 				"humidity":    baseHumidity + float64(messageCount)*humidityMultiplier,
 				"timestamp":   time.Now().Format(time.RFC3339),
 			}
 
 			deviceDataJSON, _ := json.Marshal(deviceData)
-			if err := client.Publish("devices/test-device/data", string(deviceDataJSON)); err != nil {
+			if err := client.Publish("devices/"+deviceID+"/data", string(deviceDataJSON)); err != nil {
 				errorMsg := fmt.Sprintf("❌ Failed to publish device data: %v", err)
 				log.Print(errorMsg)
 				logToFile(errorMsg)
@@ -152,13 +156,13 @@ func main() {
 
 			// Send device status
 			deviceStatus := map[string]interface{}{
-				"device_id": "test-device",
+				"device_id": deviceID,
 				"status":    "online",
 				"last_seen": time.Now().Format(time.RFC3339),
 			}
 
 			deviceStatusJSON, _ := json.Marshal(deviceStatus)
-			if err := client.Publish("devices/test-device/status", string(deviceStatusJSON)); err != nil {
+			if err := client.Publish("devices/"+deviceID+"/status", string(deviceStatusJSON)); err != nil {
 				errorMsg := fmt.Sprintf("❌ Failed to publish device status: %v", err)
 				log.Print(errorMsg)
 				logToFile(errorMsg)
