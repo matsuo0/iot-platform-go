@@ -105,7 +105,7 @@ func (c *Client) Subscribe(topic string, handler MessageHandler) error {
 			handler(msg.Topic(), msg.Payload())
 			return
 		}
-		
+
 		// Then try wildcard matches
 		for pattern, handler := range c.handlers {
 			if c.topicMatches(pattern, msg.Topic()) {
@@ -113,7 +113,7 @@ func (c *Client) Subscribe(topic string, handler MessageHandler) error {
 				return
 			}
 		}
-		
+
 		// If no handler found, use default handler
 		c.defaultMessageHandler(client, msg)
 	})
@@ -173,11 +173,11 @@ func (c *Client) defaultMessageHandler(client mqtt.Client, msg mqtt.Message) {
 func (c *Client) topicMatches(pattern, topic string) bool {
 	// Simple wildcard matching implementation
 	// This is a basic implementation - for production use a more robust MQTT topic matcher
-	
+
 	// Split both pattern and topic by '/'
 	patternParts := strings.Split(pattern, "/")
 	topicParts := strings.Split(topic, "/")
-	
+
 	// Handle # wildcard (matches everything after this point)
 	if len(patternParts) > 0 && patternParts[len(patternParts)-1] == "#" {
 		// Remove the # from pattern
@@ -196,17 +196,17 @@ func (c *Client) topicMatches(pattern, topic string) bool {
 		}
 		return false
 	}
-	
+
 	// Handle + wildcard and exact matching
 	if len(patternParts) != len(topicParts) {
 		return false
 	}
-	
+
 	for i, patternPart := range patternParts {
 		if patternPart != "+" && patternPart != topicParts[i] {
 			return false
 		}
 	}
-	
+
 	return true
 }
