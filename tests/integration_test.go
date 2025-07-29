@@ -30,17 +30,8 @@ type TestServer struct {
 
 // NewTestServer creates a new test server
 func NewTestServer(t *testing.T) *TestServer {
-	// テスト用の設定
-	cfg := &config.Config{
-		Database: config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     "5432",
-			Name:     "iot_platform_test",
-			User:     "postgres",
-			Password: "password",
-			SSLMode:  "disable",
-		},
-	}
+	// 設定の読み込み
+	cfg := config.Load()
 
 	// データベース接続
 	db, err := database.New(cfg)
@@ -48,7 +39,8 @@ func NewTestServer(t *testing.T) *TestServer {
 
 	// リポジトリとハンドラーの作成
 	repo := device.NewRepository(db)
-	handler := api.NewDeviceHandler(repo)
+	dataRepo := device.NewDataRepository(db)
+	handler := api.NewDeviceHandler(repo, dataRepo)
 
 	// ルーターの設定
 	gin.SetMode(gin.TestMode)

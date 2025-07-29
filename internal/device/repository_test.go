@@ -3,6 +3,7 @@ package device
 import (
 	"os"
 	"testing"
+	"time"
 
 	"iot-platform-go/internal/config"
 	"iot-platform-go/internal/database"
@@ -58,6 +59,85 @@ func createTestUpdateRequest() *models.UpdateDeviceRequest {
 		Location: "Updated Room",
 		Metadata: `{"manufacturer":"Updated Corp","model":"HUM-001"}`,
 	}
+}
+
+// MockDataRepository is a mock implementation of DataRepositoryInterface
+type MockDataRepository struct {
+	saveDataFunc            func(*models.DeviceData) error
+	getDeviceDataFunc       func(string, int) ([]*models.DeviceData, error)
+	getDeviceDataByTypeFunc func(string, string, int) ([]*models.DeviceData, error)
+	getLatestDataFunc       func(string) (*models.DeviceData, error)
+	deleteOldDataFunc       func(string, time.Time) error
+}
+
+// NewMockDataRepository creates a new mock data repository
+func NewMockDataRepository() *MockDataRepository {
+	return &MockDataRepository{}
+}
+
+// SetSaveDataFunc sets the mock function for SaveData
+func (m *MockDataRepository) SetSaveDataFunc(fn func(*models.DeviceData) error) {
+	m.saveDataFunc = fn
+}
+
+// SetGetDeviceDataFunc sets the mock function for GetDeviceData
+func (m *MockDataRepository) SetGetDeviceDataFunc(fn func(string, int) ([]*models.DeviceData, error)) {
+	m.getDeviceDataFunc = fn
+}
+
+// SetGetDeviceDataByTypeFunc sets the mock function for GetDeviceDataByType
+func (m *MockDataRepository) SetGetDeviceDataByTypeFunc(fn func(string, string, int) ([]*models.DeviceData, error)) {
+	m.getDeviceDataByTypeFunc = fn
+}
+
+// SetGetLatestDataFunc sets the mock function for GetLatestData
+func (m *MockDataRepository) SetGetLatestDataFunc(fn func(string) (*models.DeviceData, error)) {
+	m.getLatestDataFunc = fn
+}
+
+// SetDeleteOldDataFunc sets the mock function for DeleteOldData
+func (m *MockDataRepository) SetDeleteOldDataFunc(fn func(string, time.Time) error) {
+	m.deleteOldDataFunc = fn
+}
+
+// SaveData implements DataRepositoryInterface
+func (m *MockDataRepository) SaveData(data *models.DeviceData) error {
+	if m.saveDataFunc != nil {
+		return m.saveDataFunc(data)
+	}
+	return nil
+}
+
+// GetDeviceData implements DataRepositoryInterface
+func (m *MockDataRepository) GetDeviceData(deviceID string, limit int) ([]*models.DeviceData, error) {
+	if m.getDeviceDataFunc != nil {
+		return m.getDeviceDataFunc(deviceID, limit)
+	}
+	return []*models.DeviceData{}, nil
+}
+
+// GetDeviceDataByType implements DataRepositoryInterface
+func (m *MockDataRepository) GetDeviceDataByType(deviceID string, dataType string, limit int) ([]*models.DeviceData, error) {
+	if m.getDeviceDataByTypeFunc != nil {
+		return m.getDeviceDataByTypeFunc(deviceID, dataType, limit)
+	}
+	return []*models.DeviceData{}, nil
+}
+
+// GetLatestData implements DataRepositoryInterface
+func (m *MockDataRepository) GetLatestData(deviceID string) (*models.DeviceData, error) {
+	if m.getLatestDataFunc != nil {
+		return m.getLatestDataFunc(deviceID)
+	}
+	return nil, nil
+}
+
+// DeleteOldData implements DataRepositoryInterface
+func (m *MockDataRepository) DeleteOldData(deviceID string, olderThan time.Time) error {
+	if m.deleteOldDataFunc != nil {
+		return m.deleteOldDataFunc(deviceID, olderThan)
+	}
+	return nil
 }
 
 func TestRepository_Create(t *testing.T) {

@@ -1,3 +1,5 @@
 configs/env
 cmd/mqtt-receiver/mqtt-receiver.log
 cmd/mqtt-test/mqtt-test.log
+cmd/server/mqtt-received.log
+mqtt-test.log
