@@ -33,11 +33,13 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.21'
+        go-version: '1.24.5'
         cache: true
     
     - name: Install dependencies
       run: |
+        go env -w GOPROXY=https://proxy.golang.org,direct
+        go env -w GOSUMDB=sum.golang.org
         go mod download
         go mod verify
     
@@ -100,11 +102,13 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.21'
+        go-version: '1.24.5'
         cache: true
     
     - name: Build application
       run: |
+        go env -w GOPROXY=https://proxy.golang.org,direct
+        go env -w GOSUMDB=sum.golang.org
         go build -v -o bin/server cmd/server/main.go
     
     - name: Upload build artifacts
