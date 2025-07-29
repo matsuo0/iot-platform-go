@@ -18,6 +18,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	MQTT     MQTTConfig
+	InfluxDB InfluxDBConfig
 	JWT      JWTConfig
 	Logging  LoggingConfig
 }
@@ -49,6 +50,16 @@ type MQTTConfig struct {
 	QoS            byte
 	CleanSession   bool
 	AutoReconnect  bool
+}
+
+// InfluxDBConfig holds InfluxDB configuration
+type InfluxDBConfig struct {
+	URL      string
+	Token    string
+	Org      string
+	Bucket   string
+	Username string
+	Password string
 }
 
 // JWTConfig holds JWT configuration
@@ -92,6 +103,14 @@ func Load() *Config {
 			QoS:            getEnvAsByte("MQTT_QOS", 1),
 			CleanSession:   getEnvAsBool("MQTT_CLEAN_SESSION", true),
 			AutoReconnect:  getEnvAsBool("MQTT_AUTO_RECONNECT", true),
+		},
+		InfluxDB: InfluxDBConfig{
+			URL:      getEnv("INFLUXDB_URL", "http://localhost:8086"),
+			Token:    getEnv("INFLUXDB_TOKEN", "iot-platform-token"),
+			Org:      getEnv("INFLUXDB_ORG", "iot-platform"),
+			Bucket:   getEnv("INFLUXDB_BUCKET", "device-data"),
+			Username: getEnv("INFLUXDB_USERNAME", "admin"),
+			Password: getEnv("INFLUXDB_PASSWORD", "adminpassword"),
 		},
 		JWT: JWTConfig{
 			Secret:     getEnv("JWT_SECRET", "your-secret-key-here"),

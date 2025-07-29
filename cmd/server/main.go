@@ -17,6 +17,7 @@ import (
 	"iot-platform-go/internal/config"
 	"iot-platform-go/internal/database"
 	"iot-platform-go/internal/device"
+	"iot-platform-go/internal/influxdb"
 	"iot-platform-go/internal/mqtt"
 	"iot-platform-go/pkg/models"
 
@@ -42,13 +43,14 @@ type DeviceStatusMessage struct {
 
 // Application holds all dependencies
 type Application struct {
-	config     *config.Config
-	db         *database.Database
-	deviceRepo *device.Repository
-	dataRepo   *device.DataRepository
-	mqttClient *mqtt.Client
-	router     *gin.Engine
-	server     *http.Server
+	config       *config.Config
+	db           *database.Database
+	deviceRepo   *device.Repository
+	dataRepo     *device.DataRepository
+	influxClient *influxdb.Client
+	mqttClient   *mqtt.Client
+	router       *gin.Engine
+	server       *http.Server
 }
 
 // NewApplication creates a new application instance
@@ -63,6 +65,14 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	deviceRepo := device.NewRepository(db)
 	dataRepo := device.NewDataRepository(db)
 
+	// Initialize InfluxDB client
+	influxClient, err := influxdb.NewClient(&cfg.InfluxDB)
+	if err != nil {
+		log.Printf("⚠️ Failed to initialize InfluxDB client: %v", err)
+		log.Printf("📊 Continuing without InfluxDB integration")
+		influxClient = nil
+	}
+
 	// Initialize MQTT client
 	mqttConfig := cfg.MQTT
 	mqttConfig.CleanSession = false
@@ -76,12 +86,13 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 	router.Use(corsMiddleware())
 
 	app := &Application{
-		config:     cfg,
-		db:         db,
-		deviceRepo: deviceRepo,
-		dataRepo:   dataRepo,
-		mqttClient: mqttClient,
-		router:     router,
+		config:       cfg,
+		db:           db,
+		deviceRepo:   deviceRepo,
+		dataRepo:     dataRepo,
+		influxClient: influxClient,
+		mqttClient:   mqttClient,
+		router:       router,
 	}
 
 	// Setup routes
@@ -111,6 +122,16 @@ func (app *Application) setupRoutes() {
 			devices.GET("/:id/data", deviceHandler.GetDeviceData)
 			devices.GET("/:id/data/latest", deviceHandler.GetLatestDeviceData)
 		}
+
+		// InfluxDB routes (if available)
+		if app.influxClient != nil {
+			influxHandler := api.NewInfluxDBHandler(app.influxClient)
+			influx := apiGroup.Group("/influxdb")
+			{
+				influx.GET("/devices/:id/data", influxHandler.GetDeviceDataFromInfluxDB)
+				influx.GET("/devices/:id/data/latest", influxHandler.GetLatestDeviceDataFromInfluxDB)
+			}
+		}
 	}
 }
 
@@ -121,11 +142,17 @@ func (app *Application) healthCheckHandler(c *gin.Context) {
 		mqttStatus = "connected"
 	}
 
+	influxStatus := "unavailable"
+	if app.influxClient != nil {
+		influxStatus = "available"
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"status":      "ok",
-		"message":     "IoT Platform is running",
-		"mqtt_status": mqttStatus,
-		"timestamp":   time.Now().Format(time.RFC3339),
+		"status":        "ok",
+		"message":       "IoT Platform is running",
+		"mqtt_status":   mqttStatus,
+		"influx_status": influxStatus,
+		"timestamp":     time.Now().Format(time.RFC3339),
 	})
 }
 
@@ -181,6 +208,12 @@ func (app *Application) Stop(ctx context.Context) error {
 	if app.mqttClient != nil && app.mqttClient.IsConnected() {
 		app.mqttClient.Disconnect()
 		log.Println("✅ MQTT client disconnected")
+	}
+
+	// Close InfluxDB client
+	if app.influxClient != nil {
+		app.influxClient.Close()
+		log.Println("✅ InfluxDB client closed")
 	}
 
 	// Close database
@@ -319,6 +352,15 @@ func (app *Application) handleDeviceData(topic string, payload []byte) {
 		if err := app.dataRepo.SaveData(dataRecord); err != nil {
 			log.Printf("❌ Failed to save data for %s: %v", dataType, err)
 			continue
+		}
+
+		// Save to InfluxDB if available
+		if app.influxClient != nil {
+			if err := app.influxClient.WriteDeviceData(dataRecord); err != nil {
+				log.Printf("⚠️ Failed to save data to InfluxDB for %s: %v", dataType, err)
+			} else {
+				log.Printf("📊 Saved data point to InfluxDB: %s = %.2f", dataType, floatValue)
+			}
 		}
 
 		savedCount++

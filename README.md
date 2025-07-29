@@ -31,11 +31,11 @@ Features MQTT integration, time-series data processing, and WebSocket-based dash
 - [x] Real-time message processing
 - [x] Device status monitoring
 
-### Phase 3: Time-series Data (Planned)
-- [ ] InfluxDB integration
-- [ ] Data aggregation and compression
-- [ ] Historical data analysis
-- [ ] Performance optimization
+### Phase 3: Time-series Data ✅
+- [x] InfluxDB integration
+- [x] Data aggregation and compression
+- [x] Historical data analysis
+- [x] Performance optimization
 
 ### Phase 4: Real-time Dashboard (Planned)
 - [ ] WebSocket implementation
@@ -48,13 +48,15 @@ Features MQTT integration, time-series data processing, and WebSocket-based dash
 ```
 iot-platform-go/
 ├── cmd/
-│   └── server/          # Main application entry point
+│   ├── server/          # Main application entry point
+│   └── mqtt-test/       # MQTT test utilities
 ├── internal/
 │   ├── api/            # HTTP handlers
 │   ├── config/         # Configuration management
 │   ├── database/       # Database connection and setup
 │   ├── device/         # Device business logic
-│   ├── mqtt/           # MQTT client (planned)
+│   ├── influxdb/       # InfluxDB client
+│   ├── mqtt/           # MQTT client
 │   └── websocket/      # WebSocket hub (planned)
 ├── pkg/
 │   ├── models/         # Data models
@@ -71,9 +73,10 @@ iot-platform-go/
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.24.5 or later
 - Docker and Docker Compose
 - PostgreSQL (via Docker)
+- InfluxDB (via Docker)
 
 ### 1. Clone the repository
 
@@ -91,16 +94,30 @@ make docker-up
 This will start:
 - PostgreSQL database on port 5432
 - MQTT broker (Mosquitto) on port 1883
+- InfluxDB on port 8086
 - Grafana on port 3000 (optional)
 
-### 3. Set up environment variables
+### 3. Set up InfluxDB (First time only)
+
+```bash
+make influx-setup
+```
+
+This will guide you through:
+1. Access InfluxDB UI: http://localhost:8086
+2. Login with admin/adminpassword
+3. Create organization: iot-platform
+4. Create bucket: device-data
+5. Create API token: iot-platform-token
+
+### 4. Set up environment variables
 
 ```bash
 cp configs/env.example .env
 # Edit .env with your configuration
 ```
 
-### 4. Install dependencies and run
+### 5. Install dependencies and run
 
 ```bash
 make deps
@@ -109,7 +126,7 @@ make run
 
 The server will start on `http://localhost:8080`
 
-### 5. Test the API
+### 6. Test the API
 
 ```bash
 # Health check
@@ -126,6 +143,12 @@ curl -X POST http://localhost:8080/api/devices \
 
 # Get all devices
 curl http://localhost:8080/api/devices
+
+# Get time-series data from InfluxDB
+curl "http://localhost:8080/api/influxdb/devices/{device-id}/data?limit=10"
+
+# Get latest data from InfluxDB
+curl "http://localhost:8080/api/influxdb/devices/{device-id}/data/latest"
 ```
 
 ## API Endpoints
@@ -140,6 +163,19 @@ curl http://localhost:8080/api/devices
 | PUT | `/api/devices/:id` | Update device |
 | DELETE | `/api/devices/:id` | Delete device |
 | GET | `/api/devices/:id/status` | Get device status |
+
+### Time-series Data (InfluxDB)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/influxdb/devices/:id/data` | Get historical device data |
+| GET | `/api/influxdb/devices/:id/data/latest` | Get latest device data |
+
+**Query Parameters:**
+- `type`: Filter by data type (e.g., temperature, humidity)
+- `limit`: Number of data points (default: 100, max: 1000)
+- `start`: Start time (RFC3339 format)
+- `end`: End time (RFC3339 format)
 
 ### Health Check
 
@@ -163,6 +199,13 @@ make fmt        # Format code
 make lint       # Lint code
 make deps       # Install dependencies
 make help       # Show all commands
+
+# InfluxDB specific commands
+make influx-up   # Start InfluxDB
+make influx-down # Stop InfluxDB
+make influx-logs # Show InfluxDB logs
+make influx-cli  # Access InfluxDB CLI
+make influx-setup# Setup InfluxDB (first time)
 ```
 
 ### Adding New Features
@@ -183,6 +226,9 @@ go test -cover ./...
 
 # Run specific test
 go test ./internal/device -v
+
+# Test MQTT functionality
+go run cmd/mqtt-test/send_test_data.go
 ```
 
 ## Deployment
@@ -209,6 +255,10 @@ docker-compose up -d
 | `DB_USER` | Database user | postgres |
 | `DB_PASSWORD` | Database password | password |
 | `MQTT_BROKER` | MQTT broker URL | tcp://localhost:1883 |
+| `INFLUXDB_URL` | InfluxDB URL | http://localhost:8086 |
+| `INFLUXDB_TOKEN` | InfluxDB token | iot-platform-token |
+| `INFLUXDB_ORG` | InfluxDB organization | iot-platform |
+| `INFLUXDB_BUCKET` | InfluxDB bucket | device-data |
 | `JWT_SECRET` | JWT secret key | your-secret-key-here |
 
 ## Contributing
@@ -252,9 +302,9 @@ This project is licensed under the MIT License.
 
 ## Roadmap
 
-- [ ] MQTT integration for real-time device communication
+- [x] MQTT integration for real-time device communication
+- [x] InfluxDB integration for time-series data
 - [ ] WebSocket support for live dashboard updates
-- [ ] InfluxDB integration for time-series data
 - [ ] Authentication and authorization
 - [ ] Device firmware management
 - [ ] Alert system
