@@ -12,6 +12,31 @@ run:
 test-send:
 	go run cmd/mqtt-test/send_test_data.go
 
+# Start InfluxDB services
+influx-up:
+	docker-compose up -d influxdb
+
+# Stop InfluxDB services
+influx-down:
+	docker-compose stop influxdb
+
+# Show InfluxDB logs
+influx-logs:
+	docker-compose logs -f influxdb
+
+# Access InfluxDB CLI
+influx-cli:
+	docker-compose exec influxdb influx
+
+# Setup InfluxDB (create bucket, org, etc.)
+influx-setup:
+	@echo "Setting up InfluxDB..."
+	@echo "1. Access InfluxDB UI: http://localhost:8086"
+	@echo "2. Login with admin/adminpassword"
+	@echo "3. Create organization: iot-platform"
+	@echo "4. Create bucket: device-data"
+	@echo "5. Create API token: iot-platform-token"
+
 # Run MQTT receiver test
 test-receive:
 	go run cmd/mqtt-receiver/main.go
@@ -178,3 +203,10 @@ help:
 	@echo "  docker-run      - Run Docker container"
 	@echo "  security-scan   - Run security scan"
 	@echo "  ci-local        - Run local CI simulation" 
+	@echo "  test-send        - Run test data sender"
+	@echo "  influx-up        - Start InfluxDB services"
+	@echo "  influx-down      - Stop InfluxDB services"
+	@echo "  influx-logs      - Show InfluxDB logs"
+	@echo "  influx-cli       - Access InfluxDB CLI"
+	@echo "  influx-setup     - Setup InfluxDB"
+	@echo "  test-receive     - Run MQTT receiver test" 
