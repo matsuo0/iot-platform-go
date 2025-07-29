@@ -8,6 +8,14 @@ build:
 run:
 	go run cmd/server/main.go
 
+# Run test data sender
+test-send:
+	go run cmd/mqtt-test/send_test_data.go
+
+# Run MQTT receiver test
+test-receive:
+	go run cmd/mqtt-receiver/main.go
+
 # Run tests
 test:
 	go test ./...

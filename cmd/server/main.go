@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -17,8 +18,10 @@ import (
 	"iot-platform-go/internal/database"
 	"iot-platform-go/internal/device"
 	"iot-platform-go/internal/mqtt"
+	"iot-platform-go/pkg/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // Device data structure for MQTT messages
@@ -42,6 +45,7 @@ type Application struct {
 	config     *config.Config
 	db         *database.Database
 	deviceRepo *device.Repository
+	dataRepo   *device.DataRepository
 	mqttClient *mqtt.Client
 	router     *gin.Engine
 	server     *http.Server
@@ -57,6 +61,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 
 	// Initialize repositories
 	deviceRepo := device.NewRepository(db)
+	dataRepo := device.NewDataRepository(db)
 
 	// Initialize MQTT client
 	mqttConfig := cfg.MQTT
@@ -74,6 +79,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 		config:     cfg,
 		db:         db,
 		deviceRepo: deviceRepo,
+		dataRepo:   dataRepo,
 		mqttClient: mqttClient,
 		router:     router,
 	}
@@ -93,7 +99,7 @@ func (app *Application) setupRoutes() {
 	apiGroup := app.router.Group("/api")
 	{
 		// Device routes
-		deviceHandler := api.NewDeviceHandler(app.deviceRepo)
+		deviceHandler := api.NewDeviceHandler(app.deviceRepo, app.dataRepo)
 		devices := apiGroup.Group("/devices")
 		{
 			devices.POST("", deviceHandler.CreateDevice)
@@ -102,6 +108,8 @@ func (app *Application) setupRoutes() {
 			devices.PUT("/:id", deviceHandler.UpdateDevice)
 			devices.DELETE("/:id", deviceHandler.DeleteDevice)
 			devices.GET("/:id/status", deviceHandler.GetDeviceStatus)
+			devices.GET("/:id/data", deviceHandler.GetDeviceData)
+			devices.GET("/:id/data/latest", deviceHandler.GetLatestDeviceData)
 		}
 	}
 }
@@ -264,8 +272,67 @@ func (app *Application) handleDeviceData(topic string, payload []byte) {
 	log.Printf("   Timestamp: %s", timestamp.Format(time.RFC3339))
 	log.Printf("   Data points: %d", len(deviceData.Data))
 
-	// TODO: Save to database (will be implemented in next step)
-	log.Printf("📊 Device data ready for database storage")
+	// Check if device exists first
+	_, err = app.deviceRepo.GetByID(deviceData.DeviceID)
+	if err != nil {
+		log.Printf("⚠️ Device %s not found in database, skipping data save", deviceData.DeviceID)
+		return
+	}
+
+	// Save each data point to database
+	savedCount := 0
+	for dataType, value := range deviceData.Data {
+		// Convert value to float64
+		var floatValue float64
+		switch v := value.(type) {
+		case float64:
+			floatValue = v
+		case int:
+			floatValue = float64(v)
+		case int64:
+			floatValue = float64(v)
+		case string:
+			// Try to parse string as float
+			if parsed, err := strconv.ParseFloat(v, 64); err == nil {
+				floatValue = parsed
+			} else {
+				log.Printf("⚠️ Skipping non-numeric value for %s: %v", dataType, v)
+				continue
+			}
+		default:
+			log.Printf("⚠️ Skipping unsupported value type for %s: %T", dataType, v)
+			continue
+		}
+
+		// Create device data record
+		dataRecord := &models.DeviceData{
+			ID:        uuid.New().String(),
+			DeviceID:  deviceData.DeviceID,
+			Timestamp: timestamp,
+			DataType:  dataType,
+			Value:     floatValue,
+			Unit:      "", // TODO: Extract unit from metadata if available
+			Metadata:  "", // TODO: Extract metadata if available
+		}
+
+		// Save to database
+		if err := app.dataRepo.SaveData(dataRecord); err != nil {
+			log.Printf("❌ Failed to save data for %s: %v", dataType, err)
+			continue
+		}
+
+		savedCount++
+		log.Printf("💾 Saved data point: %s = %.2f", dataType, floatValue)
+	}
+
+	log.Printf("📊 Successfully saved %d/%d data points to database", savedCount, len(deviceData.Data))
+
+	// Update device status to online
+	if err := app.deviceRepo.UpdateStatus(deviceData.DeviceID, "online"); err != nil {
+		log.Printf("⚠️ Failed to update device status: %v", err)
+	} else {
+		log.Printf("✅ Updated device status to online")
+	}
 }
 
 // handleDeviceStatus processes incoming device status messages
@@ -312,8 +379,20 @@ func (app *Application) handleDeviceStatus(topic string, payload []byte) {
 	log.Printf("   Status: %s", deviceStatus.Status)
 	log.Printf("   Last Seen: %s", lastSeen.Format(time.RFC3339))
 
-	// TODO: Update device status in database (will be implemented in next step)
-	log.Printf("📊 Device status ready for database update")
+	// Check if device exists first
+	_, err = app.deviceRepo.GetByID(deviceStatus.DeviceID)
+	if err != nil {
+		log.Printf("⚠️ Device %s not found in database, skipping status update", deviceStatus.DeviceID)
+		return
+	}
+
+	// Update device status in database
+	if err := app.deviceRepo.UpdateStatus(deviceStatus.DeviceID, deviceStatus.Status); err != nil {
+		log.Printf("❌ Failed to update device status in database: %v", err)
+		return
+	}
+
+	log.Printf("💾 Successfully updated device status in database")
 }
 
 // handleAllDeviceMessages processes all device messages for debugging
