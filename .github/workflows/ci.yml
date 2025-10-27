@@ -84,7 +84,7 @@ jobs:
         fail_ci_if_error: false
     
     - name: Upload coverage report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: coverage-report
         path: coverage.html
@@ -112,7 +112,7 @@ jobs:
         go build -v -o bin/server cmd/server/main.go
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: server-binary
         path: bin/server
@@ -163,7 +163,7 @@ jobs:
         cache-to: type=gha,mode=max
     
     - name: Upload Docker image as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: docker-image
         path: |
